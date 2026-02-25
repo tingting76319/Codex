@@ -18,7 +18,24 @@ export function bindInputHandlers({
   onMenuStart,
   onMenuClose
 }) {
+  const lastPressTs = new WeakMap();
+  const bindPress = (el, handler) => {
+    if (!el || !handler) return;
+    const mark = () => lastPressTs.set(el, performance.now());
+    el.addEventListener("pointerdown", (event) => {
+      if ("button" in event && event.button !== 0) return;
+      mark();
+      handler(event);
+    });
+    el.addEventListener("click", (event) => {
+      const last = lastPressTs.get(el) ?? 0;
+      if (performance.now() - last < 220) return;
+      handler(event);
+    });
+  };
+
   let lastCanvasPointerTs = 0;
+  let lastGlobalCanvasRouteTs = 0;
   const handleCanvasPointer = (event) => {
     lastCanvasPointerTs = performance.now();
     onCanvasClick?.(event);
@@ -28,23 +45,50 @@ export function bindInputHandlers({
     if (performance.now() - lastCanvasPointerTs < 220) return;
     onCanvasClick?.(event);
   };
+  const routeCanvasIfInside = (event) => {
+    if (!onCanvasClick || !canvas?.getBoundingClientRect) return;
+    if (typeof event.clientX !== "number" || typeof event.clientY !== "number") return;
+    if ("button" in event && event.button !== 0) return;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    const inside = (
+      event.clientX >= rect.left &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom
+    );
+    if (!inside) return;
+    const now = performance.now();
+    if (now - lastCanvasPointerTs < 220 || now - lastGlobalCanvasRouteTs < 220) return;
+    lastGlobalCanvasRouteTs = now;
+    onCanvasClick(event);
+  };
   canvas.style.touchAction = "none";
   canvas.addEventListener("pointerdown", handleCanvasPointer);
   canvas.addEventListener("click", handleCanvasClick);
-  hud.waveBtn?.addEventListener("click", onStartWave);
-  hud.pauseBtn?.addEventListener("click", onTogglePause);
-  hud.speedBtn?.addEventListener("click", onToggleSpeed);
-  hud.towerTypeBasicBtn?.addEventListener("click", () => onSelectTowerType?.("basic"));
-  hud.towerTypeSlowBtn?.addEventListener("click", () => onSelectTowerType?.("slow"));
-  hud.towerTypeSplashBtn?.addEventListener("click", () => onSelectTowerType?.("splash"));
-  hud.muteBtn?.addEventListener("click", onToggleMute);
+  // Fallback for environments where an invisible overlay intercepts canvas events.
+  window.addEventListener("pointerdown", (event) => {
+    if (event.target === canvas) return;
+    routeCanvasIfInside(event);
+  }, true);
+  window.addEventListener("click", (event) => {
+    if (event.target === canvas) return;
+    routeCanvasIfInside(event);
+  }, true);
+  bindPress(hud.waveBtn, onStartWave);
+  bindPress(hud.pauseBtn, onTogglePause);
+  bindPress(hud.speedBtn, onToggleSpeed);
+  bindPress(hud.towerTypeBasicBtn, () => onSelectTowerType?.("basic"));
+  bindPress(hud.towerTypeSlowBtn, () => onSelectTowerType?.("slow"));
+  bindPress(hud.towerTypeSplashBtn, () => onSelectTowerType?.("splash"));
+  bindPress(hud.muteBtn, onToggleMute);
   hud.bgmVolume?.addEventListener("input", onBgmVolumeInput);
   hud.sfxVolume?.addEventListener("input", onSfxVolumeInput);
   hud.mapSelect?.addEventListener("change", onMapChange);
   hud.stageSelect?.addEventListener("change", onStageChange);
-  hud.applyStageBtn?.addEventListener("click", onApplyStage);
+  bindPress(hud.applyStageBtn, onApplyStage);
   menu?.mapSelect?.addEventListener("change", onMenuMapChange);
   menu?.stageSelect?.addEventListener("change", onMenuStageChange);
-  menu?.startBtn?.addEventListener("click", onMenuStart);
-  menu?.closeBtn?.addEventListener("click", onMenuClose);
+  bindPress(menu?.startBtn, onMenuStart);
+  bindPress(menu?.closeBtn, onMenuClose);
 }

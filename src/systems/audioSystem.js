@@ -9,7 +9,8 @@ const audioState = {
   nextBgmTime: 0,
   bgmStep: 0,
   bgmMode: "calm",
-  lastSfxAt: new Map()
+  lastSfxAt: new Map(),
+  failed: false
 };
 
 function updateAudioHud() {
@@ -28,32 +29,40 @@ function applyAudioVolumes() {
   audioState.sfxGain.gain.setTargetAtTime(Math.max(0, game.sfxVolume), audioState.ctx.currentTime, 0.02);
 }
 
-function ensureAudio() {
-  if (audioState.initialized) {
-    if (audioState.ctx.state === "suspended") {
-      audioState.ctx.resume().catch(() => {});
+  function ensureAudio() {
+    if (audioState.failed) return false;
+    if (audioState.initialized) {
+      if (audioState.ctx.state === "suspended") {
+        audioState.ctx.resume().catch(() => {});
+      }
+      return true;
     }
-    return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return false;
+      const ctxAudio = new AudioCtx();
+      const masterGain = ctxAudio.createGain();
+      const bgmGain = ctxAudio.createGain();
+      const sfxGain = ctxAudio.createGain();
+      masterGain.gain.value = game.audioMuted ? 0 : 1;
+      bgmGain.gain.value = game.bgmVolume;
+      sfxGain.gain.value = game.sfxVolume;
+      bgmGain.connect(masterGain);
+      sfxGain.connect(masterGain);
+      masterGain.connect(ctxAudio.destination);
+      audioState.ctx = ctxAudio;
+      audioState.masterGain = masterGain;
+      audioState.bgmGain = bgmGain;
+      audioState.sfxGain = sfxGain;
+      audioState.initialized = true;
+      applyAudioVolumes();
+      return true;
+    } catch (error) {
+      audioState.failed = true;
+      console.warn("[audio] init failed, continuing without audio:", error);
+      return false;
+    }
   }
-  const AudioCtx = window.AudioContext || window.webkitAudioContext;
-  if (!AudioCtx) return;
-  const ctxAudio = new AudioCtx();
-  const masterGain = ctxAudio.createGain();
-  const bgmGain = ctxAudio.createGain();
-  const sfxGain = ctxAudio.createGain();
-  masterGain.gain.value = game.audioMuted ? 0 : 1;
-  bgmGain.gain.value = game.bgmVolume;
-  sfxGain.gain.value = game.sfxVolume;
-  bgmGain.connect(masterGain);
-  sfxGain.connect(masterGain);
-  masterGain.connect(ctxAudio.destination);
-  audioState.ctx = ctxAudio;
-  audioState.masterGain = masterGain;
-  audioState.bgmGain = bgmGain;
-  audioState.sfxGain = sfxGain;
-  audioState.initialized = true;
-  applyAudioVolumes();
-}
 
 function playTone({
   type = "sine",

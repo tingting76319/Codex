@@ -181,8 +181,6 @@ const { makeTower, placeTower, upgradeTower, upgradeTowerBranch, setSelectedTowe
   burst: (...args) => burst(...args)
 });
 
-markTowerSeen(game.selectedTowerType);
-
 const { burst, updateTowers, updateBullets, updateParticles, updateFishes } = createCombatSystem({
   game,
   fishCatalog,
@@ -211,6 +209,7 @@ const unlockedStages = new Set(savedProgress.unlockedStages ?? ["endless_default
 const bestScores = { ...(savedProgress.bestScores ?? {}) };
 const seenFish = new Set(savedProgress.seenFish ?? []);
 const seenTowers = new Set(savedProgress.seenTowers ?? []);
+markTowerSeen(game.selectedTowerType);
 let activeCodexDetail = null;
 const codexFilters = {
   search: "",
@@ -987,6 +986,7 @@ bindInputHandlers({
   }
 });
 
+menu.navHomeBtn?.addEventListener("click", () => setMenuPanel("home"));
 menu.navHomeBtn?.addEventListener("click", () => setMenuPanel("home"));
 menu.navStagesBtn?.addEventListener("click", () => setMenuPanel("stages"));
 menu.navCodexBtn?.addEventListener("click", () => setMenuPanel("codex"));

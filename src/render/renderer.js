@@ -445,6 +445,7 @@ function drawOverlay() {
     const stageStars = game.lastAwardedStars ? `｜本次 ${game.lastAwardedStars} 星` : "";
     ctx.fillText(`可切換地圖 / 關卡後按「套用並重開」${stageStars}`, canvas.width / 2, canvas.height / 2 + 18);
   }
+
 }
 
 
