@@ -50,6 +50,7 @@ body {
 
 .main-menu-overlay.is-hidden {
   display: none;
+  pointer-events: none;
 }
 
 .main-menu-card {
@@ -476,6 +477,7 @@ body {
 
 .menu-detail-overlay.is-hidden {
   display: none;
+  pointer-events: none;
 }
 
 .menu-detail-card {
@@ -861,6 +863,7 @@ button.is-active {
 
 .result-overlay.is-hidden {
   display: none;
+  pointer-events: none;
 }
 
 .result-card {

@@ -18,7 +18,19 @@ export function bindInputHandlers({
   onMenuStart,
   onMenuClose
 }) {
-  canvas.addEventListener("click", onCanvasClick);
+  let lastCanvasPointerTs = 0;
+  const handleCanvasPointer = (event) => {
+    lastCanvasPointerTs = performance.now();
+    onCanvasClick?.(event);
+  };
+  const handleCanvasClick = (event) => {
+    // Some macOS/Electron setups dispatch both pointer and click; drop duplicate click.
+    if (performance.now() - lastCanvasPointerTs < 220) return;
+    onCanvasClick?.(event);
+  };
+  canvas.style.touchAction = "none";
+  canvas.addEventListener("pointerdown", handleCanvasPointer);
+  canvas.addEventListener("click", handleCanvasClick);
   hud.waveBtn?.addEventListener("click", onStartWave);
   hud.pauseBtn?.addEventListener("click", onTogglePause);
   hud.speedBtn?.addEventListener("click", onToggleSpeed);
