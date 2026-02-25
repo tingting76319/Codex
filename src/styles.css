@@ -909,6 +909,7 @@ button.is-active {
 }
 
 .boss-alert {
+  --alert-progress: 1;
   position: absolute;
   top: 14px;
   left: 50%;
@@ -930,6 +931,9 @@ button.is-active {
 .boss-alert .bar {
   height: 3px;
   background: linear-gradient(90deg, #ff7b7b, #ffd166);
+  transform-origin: left center;
+  transform: scaleX(var(--alert-progress));
+  transition: transform 80ms linear;
 }
 
 .boss-alert .content {
@@ -947,6 +951,33 @@ button.is-active {
   background: rgba(255,255,255,0.08);
   border: 1px solid rgba(255,255,255,0.12);
   font-size: 11px;
+}
+
+.boss-alert[data-badge="護盾"] {
+  border-color: rgba(125,233,255,0.35);
+  background: linear-gradient(90deg, rgba(9,39,60,0.92), rgba(14,23,43,0.92));
+}
+
+.boss-alert[data-badge="護盾"] .bar {
+  background: linear-gradient(90deg, #7de9ff, #b2f7ff);
+}
+
+.boss-alert[data-badge="召喚"] {
+  border-color: rgba(255,209,102,0.35);
+  background: linear-gradient(90deg, rgba(53,25,8,0.92), rgba(41,19,8,0.92));
+}
+
+.boss-alert[data-badge="召喚"] .bar {
+  background: linear-gradient(90deg, #ffd166, #ffb17c);
+}
+
+.boss-alert[data-badge="CLEAR"] {
+  border-color: rgba(84,230,166,0.35);
+  background: linear-gradient(90deg, rgba(8,47,33,0.92), rgba(10,31,26,0.92));
+}
+
+.boss-alert[data-badge="CLEAR"] .bar {
+  background: linear-gradient(90deg, #54e6a6, #7de9ff);
 }
 
 .boss-alert:not(.is-hidden) .badge {

@@ -300,10 +300,12 @@ function codexCompletion() {
 
 function updateCodexCompletionLabels() {
   const c = codexCompletion();
-  if (menu.fishCompletionLabel) menu.fishCompletionLabel.textContent = `${c.fishSeen} / ${c.fishTotal}`;
-  if (menu.towerCompletionLabel) menu.towerCompletionLabel.textContent = `${c.towerSeen} / ${c.towerTotal}`;
-  if (menu.fishCodexSummary) menu.fishCodexSummary.textContent = `完成率：${c.fishSeen} / ${c.fishTotal}`;
-  if (menu.towerCodexSummary) menu.towerCodexSummary.textContent = `完成率：${c.towerSeen} / ${c.towerTotal}`;
+  const fishPct = c.fishTotal ? Math.round((c.fishSeen / c.fishTotal) * 100) : 0;
+  const towerPct = c.towerTotal ? Math.round((c.towerSeen / c.towerTotal) * 100) : 0;
+  if (menu.fishCompletionLabel) menu.fishCompletionLabel.textContent = `${c.fishSeen} / ${c.fishTotal} (${fishPct}%)`;
+  if (menu.towerCompletionLabel) menu.towerCompletionLabel.textContent = `${c.towerSeen} / ${c.towerTotal} (${towerPct}%)`;
+  if (menu.fishCodexSummary) menu.fishCodexSummary.textContent = `完成率：${c.fishSeen} / ${c.fishTotal}（${fishPct}%）`;
+  if (menu.towerCodexSummary) menu.towerCodexSummary.textContent = `完成率：${c.towerSeen} / ${c.towerTotal}（${towerPct}%）`;
 }
 
 function selectedTower() {
@@ -334,10 +336,16 @@ function refreshTowerInfoPanel() {
     hud.towerInfoMeta.textContent = `座標 (${tower.cellX + 1}, ${tower.cellY + 1}) ${branch}`;
   }
   if (hud.towerInfoStats) {
+    const dps = tower.fireRate > 0 ? tower.damage / tower.fireRate : tower.damage;
+    const branchState = tower.branchLabel
+      ? `${tower.branchLabel}${tower.branchTier ? ` ${tower.branchTier}` : ""}`
+      : "未選分支";
     const rows = [
       ["傷害", Math.round(tower.damage)],
       ["射程", Math.round(tower.range)],
       ["攻速", `${tower.fireRate.toFixed(2)}s`],
+      ["DPS(估算)", Math.round(dps)],
+      ["分支", branchState],
       ["升級費", tower.level >= 4 ? "已滿級" : tower.upgradeCost]
     ];
     if (tower.slow) rows.push(["緩速", `${Math.round((1 - tower.slow.multiplier) * 100)}% / ${tower.slow.duration.toFixed(1)}s`]);
@@ -357,9 +365,12 @@ function updateBossAlert(dt) {
   if (!overlays.bossAlert) return;
   const active = game.bossAlert.timer > 0;
   overlays.bossAlert.classList.toggle("is-hidden", !active);
+  const progress = game.bossAlert.total > 0 ? Math.max(0, Math.min(1, game.bossAlert.timer / game.bossAlert.total)) : 0;
+  overlays.bossAlert.style.setProperty("--alert-progress", String(progress));
   if (!active) return;
   if (overlays.bossAlertText) overlays.bossAlertText.textContent = game.bossAlert.text;
   if (overlays.bossAlertBadge) overlays.bossAlertBadge.textContent = game.bossAlert.badge;
+  overlays.bossAlert.dataset.badge = game.bossAlert.badge || "警報";
   if (overlays.bossAlertTimer) overlays.bossAlertTimer.textContent = `${game.bossAlert.timer.toFixed(1)}s`;
 }
 
