@@ -143,6 +143,14 @@ function setMessage(text) {
   setHudMessage(text);
 }
 
+function isMainMenuVisible() {
+  return Boolean(menu.overlay && !menu.overlay.classList.contains("is-hidden"));
+}
+
+function syncMenuStateFromDom() {
+  game.inMainMenu = isMainMenuVisible();
+}
+
 const fishFactory = createFishFactory({ game, fishCatalog, pathPoints });
 const spawnFish = (kindKey, overrides) => {
   markFishSeen(kindKey);
@@ -868,6 +876,7 @@ bindInputHandlers({
   hud,
   menu,
   onCanvasClick: (event) => {
+    syncMenuStateFromDom();
     if (game.inMainMenu) return;
     ensureAudio();
     const { cellX, cellY } = gridFromMouse(event);
@@ -897,6 +906,7 @@ bindInputHandlers({
   },
   onStartWave: startNextWave,
   onTogglePause: () => {
+    syncMenuStateFromDom();
     if (game.inMainMenu) {
       closeMainMenu();
       setMessage(`已進入 ${game.stageLabel}，點擊「開始/下一波」開始防守。`);
@@ -907,6 +917,7 @@ bindInputHandlers({
     updateHud();
   },
   onToggleSpeed: () => {
+    syncMenuStateFromDom();
     ensureAudio();
     game.timeScale = game.timeScale === 1 ? 2 : 1;
     updateHud();
@@ -1150,6 +1161,7 @@ function loop(ts) {
   lastTs = ts;
 
   updateBgmScheduler();
+  syncMenuStateFromDom();
 
   if (!game.inMainMenu && !game.paused && game.lives > 0) {
     const dt = rawDt * game.timeScale;
