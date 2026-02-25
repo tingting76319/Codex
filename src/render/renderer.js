@@ -1,4 +1,37 @@
 export function createRenderer({ ctx, canvas, game, GRID, pathPoints, pathCellSet, towerCatalog }) {
+function drawFishStatusBadges(fish) {
+  const badges = [];
+  if (fish.slowEffects?.length) badges.push({ text: "緩", fill: "#8effd8" });
+  if (fish.burnEffects?.length) badges.push({ text: "燃", fill: "#ffb17c" });
+  if (fish.armorBreakEffects?.length) badges.push({ text: "破", fill: "#ffd166" });
+  if ((fish.armorRatio ?? 1) < 1) badges.push({ text: "甲", fill: "#ffdf91" });
+  if (fish.bossShieldHp > 0) badges.push({ text: "盾", fill: "#7de9ff" });
+  if (fish.isAccelerated) badges.push({ text: "速", fill: "#d9fbff" });
+  if (!badges.length) return;
+
+  const y = fish.y - fish.radius - (fish.isBoss ? 34 : 24);
+  const width = 18;
+  const gap = 4;
+  const total = badges.length * width + (badges.length - 1) * gap;
+  let x = fish.x - total / 2;
+  for (const badge of badges.slice(0, 4)) {
+    ctx.fillStyle = "rgba(5, 24, 31, 0.85)";
+    ctx.strokeStyle = "rgba(231, 251, 255, 0.15)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(x, y, width, 14, 5);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = badge.fill;
+    ctx.font = "bold 10px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(badge.text, x + width / 2, y + 7);
+    x += width + gap;
+  }
+  ctx.textBaseline = "alphabetic";
+}
+
 function drawBackground() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -41,9 +74,19 @@ function drawBackground() {
 
 function drawTowers() {
   for (const tower of game.towers) {
+    const isSelected = tower.id === game.selectedTowerId;
+    if (isSelected) {
+      ctx.strokeStyle = "rgba(125, 233, 255, 0.24)";
+      ctx.lineWidth = 1.25;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.arc(tower.x, tower.y, tower.range, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
     ctx.fillStyle = "#102e3c";
-    ctx.strokeStyle = "rgba(147, 233, 255, 0.55)";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = isSelected ? "rgba(125, 233, 255, 0.95)" : "rgba(147, 233, 255, 0.55)";
+    ctx.lineWidth = isSelected ? 2.8 : 2;
     ctx.beginPath();
     ctx.roundRect(tower.x - 20, tower.y - 20, 40, 40, 10);
     ctx.fill();
@@ -81,6 +124,13 @@ function drawTowers() {
       ctx.font = "bold 10px sans-serif";
       const branchTag = `${tower.branchPath === "sniper" || tower.branchPath === "glacier" || tower.branchPath === "megablast" ? "A" : "B"}${tower.branchTier || 1}`;
       ctx.fillText(branchTag, tower.x + 22, tower.y - 18);
+    }
+    if (isSelected) {
+      ctx.strokeStyle = "rgba(255,255,255,0.65)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(tower.x, tower.y, 22, 0, Math.PI * 2);
+      ctx.stroke();
     }
   }
 }
@@ -315,6 +365,7 @@ function drawFish(fish) {
       ctx.fillRect(fish.x - fish.radius, fish.y - fish.radius - 22, fish.radius * 2 * shieldRatio, 4);
     }
   }
+  drawFishStatusBadges(fish);
 }
 
 function drawBullets() {

@@ -249,6 +249,15 @@ function mapPreviewSrc(mapId) {
   return table[mapId] ?? table.defaultMap;
 }
 
+function mapPreviewThemeClass(mapId) {
+  const table = {
+    defaultMap: "theme-shallow",
+    coralMaze: "theme-coral",
+    deepTrench: "theme-trench"
+  };
+  return table[mapId] ?? "theme-shallow";
+}
+
 function describeSkill(skill) {
   switch (skill?.type) {
     case "accelerate_on_hp":
@@ -529,6 +538,7 @@ function renderCodexLists() {
   }
   if (menu.fishCodexList) {
     menu.fishCodexList.innerHTML = "";
+    let fishCount = 0;
     for (const [fishId, fish] of Object.entries(fishCatalog)) {
       if (typeFilter === "tower") continue;
       if (sizeFilter !== "all" && fish.sizeClass !== sizeFilter) continue;
@@ -574,10 +584,18 @@ function renderCodexLists() {
         });
       });
       menu.fishCodexList.append(item);
+      fishCount += 1;
+    }
+    if (fishCount === 0) {
+      const empty = document.createElement("div");
+      empty.className = "menu-codex-empty";
+      empty.textContent = "沒有符合條件的魚種。";
+      menu.fishCodexList.append(empty);
     }
   }
   if (menu.towerCodexList) {
     menu.towerCodexList.innerHTML = "";
+    let towerCount = 0;
     for (const [towerId, tower] of Object.entries(towerCatalog)) {
       if (typeFilter === "fish") continue;
       if (q) {
@@ -626,6 +644,13 @@ function renderCodexLists() {
         });
       });
       menu.towerCodexList.append(item);
+      towerCount += 1;
+    }
+    if (towerCount === 0) {
+      const empty = document.createElement("div");
+      empty.className = "menu-codex-empty";
+      empty.textContent = "沒有符合條件的塔台。";
+      menu.towerCodexList.append(empty);
     }
   }
   updateCodexCompletionLabels();
@@ -747,8 +772,9 @@ function renderMenuStageCards() {
       ? `最佳波次 ${bestScores.endlessWave ?? 0} / 擊殺 ${bestScores.endlessKills ?? 0}`
       : starsText(stage.id);
     const preview = mapPreviewSrc(stage.mapId);
+    const thumbTheme = mapPreviewThemeClass(stage.mapId);
     card.innerHTML = `
-      <span class="thumb"><img src="${preview}" alt="${mapName} 縮圖" /></span>
+      <span class="thumb ${thumbTheme}"><img src="${preview}" alt="${mapName} 縮圖" /></span>
       <span class="body">
         <span class="title">${stage.label}</span>
         <span class="meta">${mapName}</span>
