@@ -1,4 +1,4 @@
-export function createCombatSystem({ game, fishCatalog, pathPoints, spawnFish, setMessage, playSfx }) {
+export function createCombatSystem({ game, fishCatalog, pathPoints, spawnFish, setMessage, playSfx, showBossAlert }) {
 function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
@@ -123,10 +123,14 @@ function spawnSplitChildren(parent) {
   setMessage(`${parent.label} 觸發分裂技能！`);
 }
 
-function handleFishDeath(target) {
-  game.kills += 1;
-  game.gold += target.reward;
-  burst(target.x, target.y, "#ffffff");
+  function handleFishDeath(target) {
+    game.kills += 1;
+    game.gold += target.reward;
+    if (target.isBoss) {
+      game.stats.bossKills = (game.stats.bossKills ?? 0) + 1;
+      showBossAlert?.(`${target.label} 已被擊敗`, { badge: "CLEAR", duration: 2.4 });
+    }
+    burst(target.x, target.y, "#ffffff");
   spawnSplitChildren(target);
   playSfx("kill");
 }
@@ -150,7 +154,7 @@ function applyBurnToFish(fish, burn) {
   fish.burnEffects.push({ ...burn });
 }
 
-function spawnBossSummons(boss) {
+  function spawnBossSummons(boss) {
   const spawns = boss.bossSummonPacks ?? [
     { kind: "swordfish", count: 2 },
     { kind: "tunaMedium", count: 2 },
@@ -169,9 +173,10 @@ function spawnBossSummons(boss) {
     }
   }
   burst(boss.x, boss.y, "#ffd166");
-  setMessage("深海鯨王召喚魚群增援！");
-  playSfx("bossSummon");
-}
+    setMessage("深海鯨王召喚魚群增援！");
+    playSfx("bossSummon");
+    showBossAlert?.("Boss 召喚魚群增援", { badge: "召喚", duration: 2.2 });
+  }
 
 function triggerBossSkillsOnHpThresholds(fish) {
   if (!fish.isBoss || fish.hp <= 0) return;
@@ -186,6 +191,7 @@ function triggerBossSkillsOnHpThresholds(fish) {
     burst(fish.x, fish.y, "#7de9ff");
     setMessage("深海鯨王展開護盾階段！");
     playSfx("bossShield");
+    showBossAlert?.("Boss 進入護盾階段", { badge: "護盾", duration: 2.4 });
   }
 }
 

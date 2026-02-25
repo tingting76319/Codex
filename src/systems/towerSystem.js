@@ -2,6 +2,7 @@ export function createTowerSystem({ game, GRID, pathCellSet, towerCatalog, setMe
 function makeTower(cellX, cellY, typeKey = "basic") {
   const spec = towerCatalog[typeKey] ?? towerCatalog.basic;
   return {
+    id: game.nextTowerId++,
     x: GRID.x + cellX * GRID.size + GRID.size / 2,
     y: GRID.y + cellY * GRID.size + GRID.size / 2,
     cellX,
@@ -45,36 +46,37 @@ function getTowerBranchOptions(tower) {
 }
 
 function placeTower(cellX, cellY) {
-  if (cellX < 0 || cellX >= GRID.cols || cellY < 0 || cellY >= GRID.rows) return;
+  if (cellX < 0 || cellX >= GRID.cols || cellY < 0 || cellY >= GRID.rows) return false;
   if (pathCellSet.has(`${cellX},${cellY}`)) {
     setMessage("無法在魚群路徑上部署塔台。");
-    return;
+    return false;
   }
   if (game.towers.some((t) => t.cellX === cellX && t.cellY === cellY)) {
     setMessage("此位置已有塔台。");
-    return;
+    return false;
   }
   const selectedSpec = towerCatalog[game.selectedTowerType] ?? towerCatalog.basic;
   const cost = selectedSpec.cost;
   if (game.gold < cost) {
     setMessage(`金幣不足，${selectedSpec.label} 需要 ${cost}。`);
-    return;
+    return false;
   }
   game.gold -= cost;
   game.towers.push(makeTower(cellX, cellY, game.selectedTowerType));
   setMessage(`已部署${selectedSpec.label} (${cellX + 1}, ${cellY + 1})`);
   playSfx("towerPlace");
   updateHud();
+  return true;
 }
 
 function upgradeTower(tower) {
   if (tower.level >= 4) {
     setMessage("塔台已達最高等級。");
-    return;
+    return false;
   }
   if (game.gold < tower.upgradeCost) {
     setMessage(`金幣不足，升級需要 ${tower.upgradeCost}。`);
-    return;
+    return false;
   }
   game.gold -= tower.upgradeCost;
   tower.level += 1;
@@ -95,6 +97,7 @@ function upgradeTower(tower) {
   burst(tower.x, tower.y, tower.color ?? "#55d8ff");
   playSfx("towerUpgrade");
   updateHud();
+  return true;
 }
 
 function applyTowerBranchEffects(tower, branchKey, tier) {
@@ -145,17 +148,17 @@ function applyTowerBranchEffects(tower, branchKey, tier) {
 function upgradeTowerBranch(tower, slot) {
   if (tower.level < 2) {
     setMessage("分支升級需塔台達到 Lv.2。");
-    return;
+    return false;
   }
   const options = getTowerBranchOptions(tower);
   const selected = options[slot];
-  if (!selected) return;
+    if (!selected) return false;
 
   if (!tower.branchPath) {
     const cost = selected.cost1;
     if (game.gold < cost) {
       setMessage(`金幣不足，${selected.label} 需要 ${cost}。`);
-      return;
+      return false;
     }
     game.gold -= cost;
     tower.branchPath = selected.key;
@@ -166,20 +169,20 @@ function upgradeTowerBranch(tower, slot) {
     burst(tower.x, tower.y, "#ffd166");
     playSfx("branchUpgrade");
     updateHud();
-    return;
+    return true;
   }
 
   if (tower.branchPath !== selected.key) {
     setMessage(`此塔已選擇 ${tower.branchLabel}，不可切換分支。`);
-    return;
+    return false;
   }
   if ((tower.branchTier ?? 0) >= 2) {
     setMessage("分支技能已達最高階。");
-    return;
+    return false;
   }
   if (tower.level < 4) {
     setMessage("分支二階需塔台達到 Lv.4。");
-    return;
+    return false;
   }
   const cost = selected.cost2;
   if (game.gold < cost) {
@@ -193,6 +196,7 @@ function upgradeTowerBranch(tower, slot) {
   burst(tower.x, tower.y, "#ffe9ad");
   playSfx("branchUpgrade");
   updateHud();
+  return true;
 }
 
 function setSelectedTowerType(typeKey) {

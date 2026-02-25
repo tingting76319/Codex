@@ -30,6 +30,16 @@
               <strong id="menuCurrentStageLabel">-</strong>
             </div>
           </div>
+          <div class="menu-home-summary">
+            <div>
+              <span>魚種圖鑑完成率</span>
+              <strong id="menuFishCompletionLabel">0 / 0</strong>
+            </div>
+            <div>
+              <span>塔台圖鑑完成率</span>
+              <strong id="menuTowerCompletionLabel">0 / 0</strong>
+            </div>
+          </div>
           <div class="menu-slot-row">
             <label for="menuSaveSlot">存檔槽</label>
             <select id="menuSaveSlot">
@@ -98,10 +108,12 @@
           <div class="menu-codex-columns">
             <div>
               <h3 class="menu-subtitle">魚種圖鑑</h3>
+              <p id="menuFishCodexSummary" class="main-menu-desc">完成率：0 / 0</p>
               <div id="menuFishCodexList" class="menu-codex-list"></div>
             </div>
             <div>
               <h3 class="menu-subtitle">塔台圖鑑</h3>
+              <p id="menuTowerCodexSummary" class="main-menu-desc">完成率：0 / 0</p>
               <div id="menuTowerCodexList" class="menu-codex-list"></div>
             </div>
           </div>
@@ -155,7 +167,14 @@
                   <option>高</option>
                 </select>
               </div>
+              <div class="menu-setting-line">
+                <label for="menuShowTowerPanel">顯示塔台資訊面板</label>
+                <input id="menuShowTowerPanel" type="checkbox" checked />
+              </div>
               <p class="main-menu-desc">已接上 renderer：特效密度會影響粒子數量，傷害數字可開關。</p>
+              <div class="controls">
+                <button id="menuResetSettingsBtn">重設設定</button>
+              </div>
             </div>
           </div>
           <div class="main-menu-actions">
@@ -186,6 +205,8 @@
           <p id="resultKicker" class="main-menu-kicker">關卡結算</p>
           <h2 id="resultTitle" class="menu-section-title">-</h2>
           <p id="resultSummary" class="main-menu-desc">-</p>
+          <div id="resultStarsRule" class="result-rule">星級條件：3★ 生命≥18｜2★ 生命≥10｜1★ 通關</div>
+          <div id="resultUnlockHint" class="result-rule">解鎖提示：-</div>
           <div id="resultStats" class="result-stats"></div>
           <div class="main-menu-actions">
             <button id="resultRetryBtn">重玩本關</button>
@@ -251,6 +272,14 @@
           <p>點擊切換欲部署塔種，再點地圖放置。</p>
         </div>
         <div class="tower-card">
+          <h2>塔台資訊</h2>
+          <div id="towerInfoPanel" class="tower-info-panel is-empty">
+            <p id="towerInfoTitle">未選取塔台</p>
+            <p id="towerInfoMeta">點擊已部署塔台查看屬性與分支狀態。</p>
+            <div id="towerInfoStats"></div>
+          </div>
+        </div>
+        <div class="tower-card">
           <h2>部署塔台</h2>
           <p>點擊海域格子放置目前選擇的塔台（依塔種成本），再點同一塔台可升級</p>
           <ul>
@@ -273,6 +302,14 @@
         <p id="message" class="message">點擊「開始/下一波」生成魚群。</p>
       </section>
       <section class="game-panel">
+        <div id="bossAlert" class="boss-alert is-hidden" aria-live="polite">
+          <div class="bar"></div>
+          <div class="content">
+            <span class="badge" id="bossAlertBadge">警報</span>
+            <span id="bossAlertText">Boss 技能預警</span>
+            <span id="bossAlertTimer">0.0s</span>
+          </div>
+        </div>
         <canvas id="gameCanvas" width="980" height="760" aria-label="Fish tower defense game"></canvas>
       </section>
     </main>

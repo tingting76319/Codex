@@ -22,7 +22,11 @@ export const hud = {
   sfxVolumeValue: document.getElementById("sfxVolumeValue"),
   towerTypeBasicBtn: document.getElementById("towerTypeBasicBtn"),
   towerTypeSlowBtn: document.getElementById("towerTypeSlowBtn"),
-  towerTypeSplashBtn: document.getElementById("towerTypeSplashBtn")
+  towerTypeSplashBtn: document.getElementById("towerTypeSplashBtn"),
+  towerInfoPanel: document.getElementById("towerInfoPanel"),
+  towerInfoTitle: document.getElementById("towerInfoTitle"),
+  towerInfoMeta: document.getElementById("towerInfoMeta"),
+  towerInfoStats: document.getElementById("towerInfoStats")
 };
 
 export const menu = {
@@ -42,12 +46,16 @@ export const menu = {
   stageSelectionText: document.getElementById("menuStageSelectionText"),
   currentMapLabel: document.getElementById("menuCurrentMapLabel"),
   currentStageLabel: document.getElementById("menuCurrentStageLabel"),
+  fishCompletionLabel: document.getElementById("menuFishCompletionLabel"),
+  towerCompletionLabel: document.getElementById("menuTowerCompletionLabel"),
   saveSlot: document.getElementById("menuSaveSlot"),
   saveSlotMirror: document.getElementById("menuSaveSlotMirror"),
   applySlotBtn: document.getElementById("menuApplySlotBtn"),
   resetSlotBtn: document.getElementById("menuResetSlotBtn"),
   fishCodexList: document.getElementById("menuFishCodexList"),
+  fishCodexSummary: document.getElementById("menuFishCodexSummary"),
   towerCodexList: document.getElementById("menuTowerCodexList"),
+  towerCodexSummary: document.getElementById("menuTowerCodexSummary"),
   codexDetailOverlay: document.getElementById("menuCodexDetailOverlay"),
   detailType: document.getElementById("menuDetailType"),
   detailTitle: document.getElementById("menuDetailTitle"),
@@ -63,6 +71,8 @@ export const menu = {
   sfxVolumeValue: document.getElementById("menuSfxVolumeValue"),
   showDamageText: document.getElementById("menuShowDamageText"),
   fxDensity: document.getElementById("menuFxDensity"),
+  showTowerPanel: document.getElementById("menuShowTowerPanel"),
+  resetSettingsBtn: document.getElementById("menuResetSettingsBtn"),
   codexSearch: document.getElementById("menuCodexSearch"),
   codexTypeFilter: document.getElementById("menuCodexTypeFilter"),
   codexSizeFilter: document.getElementById("menuCodexSizeFilter"),
@@ -83,8 +93,17 @@ export const resultUi = {
   kicker: document.getElementById("resultKicker"),
   title: document.getElementById("resultTitle"),
   summary: document.getElementById("resultSummary"),
+  starsRule: document.getElementById("resultStarsRule"),
+  unlockHint: document.getElementById("resultUnlockHint"),
   stats: document.getElementById("resultStats"),
   retryBtn: document.getElementById("resultRetryBtn"),
   nextBtn: document.getElementById("resultNextBtn"),
   menuBtn: document.getElementById("resultMenuBtn")
+};
+
+export const overlays = {
+  bossAlert: document.getElementById("bossAlert"),
+  bossAlertBadge: document.getElementById("bossAlertBadge"),
+  bossAlertText: document.getElementById("bossAlertText"),
+  bossAlertTimer: document.getElementById("bossAlertTimer")
 };

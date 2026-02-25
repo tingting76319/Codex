@@ -1,4 +1,4 @@
-import { canvas, ctx, hud, menu, resultUi } from "./ui/dom.js";
+import { canvas, ctx, hud, menu, resultUi, overlays } from "./ui/dom.js";
 import { createHudController } from "./ui/hudController.js";
 import { bindInputHandlers } from "./ui/inputController.js";
 import { createMapRuntime } from "./core/map.js";
@@ -62,7 +62,8 @@ const savedSettings = loadJsonStorage(STORAGE_KEYS.settings, {
   bgmVolume: Number(hud.bgmVolume?.value ?? 45) / 100,
   sfxVolume: Number(hud.sfxVolume?.value ?? 70) / 100,
   showDamageText: true,
-  fxDensity: "中"
+  fxDensity: "中",
+  showTowerPanel: true
 });
 const savedProgress = loadJsonStorage(STORAGE_KEYS.progress, {
   stars: {},
@@ -92,6 +93,7 @@ const game = {
   spawnTimer: 0,
   waveActive: false,
   nextFishId: 1,
+  nextTowerId: 1,
   inMainMenu: true,
   mapId: resolvedMapId,
   stageId: initialStage.id,
@@ -109,9 +111,20 @@ const game = {
   lastResultReward: 0,
   currentSaveSlot: activeSaveSlot,
   resultShown: false,
+  selectedTowerId: null,
+  lastMessage: "",
+  bossAlert: { text: "", badge: "警報", timer: 0, total: 0 },
+  stats: {
+    towersPlaced: 0,
+    towerUpgrades: 0,
+    branchUpgrades: 0,
+    bossKills: 0,
+    maxWaveReached: 0
+  },
   displaySettings: {
     showDamageText: savedSettings.showDamageText !== false,
-    fxDensity: ["低", "中", "高"].includes(savedSettings.fxDensity) ? savedSettings.fxDensity : "中"
+    fxDensity: ["低", "中", "高"].includes(savedSettings.fxDensity) ? savedSettings.fxDensity : "中",
+    showTowerPanel: savedSettings.showTowerPanel !== false
   }
 };
 
@@ -123,7 +136,12 @@ const { GRID, pathCells, pathPoints, pathCellSet } = createMapRuntime(activeMap)
 const activeStage = stageCatalog[game.stageId] ?? stageCatalog[defaultStageId];
 
 const { updateAudioHud, applyAudioVolumes, ensureAudio, playSfx, updateBgmScheduler } = createAudioSystem({ game, hud });
-const { setMessage, updateHud } = createHudController({ hud, game, updateAudioHud });
+const { setMessage: setHudMessage, updateHud } = createHudController({ hud, game, updateAudioHud });
+
+function setMessage(text) {
+  game.lastMessage = text;
+  setHudMessage(text);
+}
 
 const fishFactory = createFishFactory({ game, fishCatalog, pathPoints });
 const spawnFish = (kindKey, overrides) => {
@@ -163,7 +181,8 @@ const { burst, updateTowers, updateBullets, updateParticles, updateFishes } = cr
   pathPoints,
   spawnFish,
   setMessage,
-  playSfx
+  playSfx,
+  showBossAlert
 });
 
 const { startNextWave, updateSpawning } = createSpawnSystem({
@@ -172,7 +191,8 @@ const { startNextWave, updateSpawning } = createSpawnSystem({
   setMessage,
   playSfx,
   updateHud,
-  wavePlan: activeStage.wavePlan
+  wavePlan: activeStage.wavePlan,
+  showBossAlert
 });
 
 let pendingMapId = game.mapId;
@@ -258,6 +278,82 @@ function getStagesContainingFish(targetFishId) {
   return result;
 }
 
+function codexCompletion() {
+  const fishTotal = Object.keys(fishCatalog).length;
+  const towerTotal = Object.keys(towerCatalog).length;
+  return {
+    fishSeen: seenFish.size,
+    fishTotal,
+    towerSeen: seenTowers.size,
+    towerTotal
+  };
+}
+
+function updateCodexCompletionLabels() {
+  const c = codexCompletion();
+  if (menu.fishCompletionLabel) menu.fishCompletionLabel.textContent = `${c.fishSeen} / ${c.fishTotal}`;
+  if (menu.towerCompletionLabel) menu.towerCompletionLabel.textContent = `${c.towerSeen} / ${c.towerTotal}`;
+  if (menu.fishCodexSummary) menu.fishCodexSummary.textContent = `完成率：${c.fishSeen} / ${c.fishTotal}`;
+  if (menu.towerCodexSummary) menu.towerCodexSummary.textContent = `完成率：${c.towerSeen} / ${c.towerTotal}`;
+}
+
+function selectedTower() {
+  return game.towers.find((t) => t.id === game.selectedTowerId) ?? null;
+}
+
+function refreshTowerInfoPanel() {
+  if (!hud.towerInfoPanel) return;
+  const tower = selectedTower();
+  if (!game.displaySettings.showTowerPanel) {
+    hud.towerInfoPanel.classList.add("is-empty");
+    if (hud.towerInfoTitle) hud.towerInfoTitle.textContent = "塔台資訊已關閉";
+    if (hud.towerInfoMeta) hud.towerInfoMeta.textContent = "可在設定中重新開啟塔台資訊面板。";
+    if (hud.towerInfoStats) hud.towerInfoStats.innerHTML = "";
+    return;
+  }
+  if (!tower) {
+    hud.towerInfoPanel.classList.add("is-empty");
+    if (hud.towerInfoTitle) hud.towerInfoTitle.textContent = "未選取塔台";
+    if (hud.towerInfoMeta) hud.towerInfoMeta.textContent = "點擊已部署塔台查看屬性與分支狀態。";
+    if (hud.towerInfoStats) hud.towerInfoStats.innerHTML = "";
+    return;
+  }
+  hud.towerInfoPanel.classList.remove("is-empty");
+  if (hud.towerInfoTitle) hud.towerInfoTitle.textContent = `${tower.typeLabel} Lv.${tower.level}`;
+  if (hud.towerInfoMeta) {
+    const branch = tower.branchLabel ? `｜${tower.branchLabel}${tower.branchTier ? ` ${tower.branchTier}` : ""}` : "";
+    hud.towerInfoMeta.textContent = `座標 (${tower.cellX + 1}, ${tower.cellY + 1}) ${branch}`;
+  }
+  if (hud.towerInfoStats) {
+    const rows = [
+      ["傷害", Math.round(tower.damage)],
+      ["射程", Math.round(tower.range)],
+      ["攻速", `${tower.fireRate.toFixed(2)}s`],
+      ["升級費", tower.level >= 4 ? "已滿級" : tower.upgradeCost]
+    ];
+    if (tower.slow) rows.push(["緩速", `${Math.round((1 - tower.slow.multiplier) * 100)}% / ${tower.slow.duration.toFixed(1)}s`]);
+    if (tower.splashRadius) rows.push(["範圍", `${Math.round(tower.splashRadius)} (${Math.round((tower.splashRatio ?? 0) * 100)}%)`]);
+    if (tower.armorBreak) rows.push(["破甲", `${Math.round((tower.armorBreak.amount ?? 0) * 100)}%`]);
+    if (tower.burn) rows.push(["灼燒", `${Math.round(tower.burn.dps ?? 0)} DPS`]);
+    hud.towerInfoStats.innerHTML = rows.map(([k, v]) => `<div class="row"><span>${k}</span><strong>${v}</strong></div>`).join("");
+  }
+}
+
+function showBossAlert(text, { badge = "警報", duration = 2.2 } = {}) {
+  game.bossAlert = { text, badge, timer: duration, total: duration };
+}
+
+function updateBossAlert(dt) {
+  if (game.bossAlert.timer > 0) game.bossAlert.timer = Math.max(0, game.bossAlert.timer - dt);
+  if (!overlays.bossAlert) return;
+  const active = game.bossAlert.timer > 0;
+  overlays.bossAlert.classList.toggle("is-hidden", !active);
+  if (!active) return;
+  if (overlays.bossAlertText) overlays.bossAlertText.textContent = game.bossAlert.text;
+  if (overlays.bossAlertBadge) overlays.bossAlertBadge.textContent = game.bossAlert.badge;
+  if (overlays.bossAlertTimer) overlays.bossAlertTimer.textContent = `${game.bossAlert.timer.toFixed(1)}s`;
+}
+
 function stageEntriesForMap(mapId) {
   return Object.values(stageCatalog).filter((stage) => stage.mapId === mapId);
 }
@@ -325,6 +421,7 @@ function syncMenuSettingsUi() {
   if (menu.muteState) menu.muteState.textContent = game.audioMuted ? "關" : "開";
   if (menu.showDamageText) menu.showDamageText.checked = game.displaySettings.showDamageText;
   if (menu.fxDensity) menu.fxDensity.value = game.displaySettings.fxDensity;
+  if (menu.showTowerPanel) menu.showTowerPanel.checked = game.displaySettings.showTowerPanel;
   if (menu.saveSlot) menu.saveSlot.value = game.currentSaveSlot;
   if (menu.saveSlotMirror) menu.saveSlotMirror.value = game.currentSaveSlot;
 }
@@ -335,7 +432,8 @@ function persistSettings() {
     bgmVolume: game.bgmVolume,
     sfxVolume: game.sfxVolume,
     showDamageText: game.displaySettings.showDamageText,
-    fxDensity: game.displaySettings.fxDensity
+    fxDensity: game.displaySettings.fxDensity,
+    showTowerPanel: game.displaySettings.showTowerPanel
   });
 }
 
@@ -354,6 +452,7 @@ function markFishSeen(fishId) {
   seenFish.add(fishId);
   persistProgress();
   if (activeMenuPanel === "codex") renderCodexLists();
+  updateCodexCompletionLabels();
 }
 
 function markTowerSeen(towerId) {
@@ -361,6 +460,7 @@ function markTowerSeen(towerId) {
   seenTowers.add(towerId);
   persistProgress();
   if (activeMenuPanel === "codex") renderCodexLists();
+  updateCodexCompletionLabels();
 }
 
 function awardStageStarsIfNeeded() {
@@ -528,6 +628,7 @@ function renderCodexLists() {
       menu.towerCodexList.append(item);
     }
   }
+  updateCodexCompletionLabels();
 }
 
 function hideResultOverlay() {
@@ -546,18 +647,37 @@ function openResultOverlay({ victory }) {
   game.paused = true;
   const nextStageId = getNextPlayableStageId(game.stageId);
   const nextUnlocked = nextStageId ? isStageUnlocked(nextStageId) : false;
+  const nextStageLabel = nextStageId ? (stageCatalog[nextStageId]?.label ?? nextStageId) : "無";
   resultUi.kicker.textContent = victory ? "關卡結算" : "戰鬥失敗";
   resultUi.title.textContent = victory ? "任務完成" : "防線失守";
   resultUi.summary.textContent = victory
     ? `${game.stageLabel} 通關，獲得 ${game.lastAwardedStars || 0} 星，結算獎勵 +${game.lastResultReward || 0} 金幣。`
     : `${game.stageLabel} 挑戰失敗，請調整塔台配置再試一次。`;
+  if (resultUi.starsRule) {
+    resultUi.starsRule.textContent = victory
+      ? "星級條件：3★ 生命≥18｜2★ 生命≥10｜1★ 通關"
+      : "星級條件：通關後依剩餘生命評級";
+  }
+  if (resultUi.unlockHint) {
+    const unlockedCount = Object.keys(stageCatalog)
+      .filter((id) => !id.startsWith("endless"))
+      .filter((id) => unlockedStages.has(id)).length;
+    resultUi.unlockHint.textContent = victory
+      ? `${nextStageId
+        ? `解鎖提示：${nextUnlocked ? `可挑戰下一關 ${nextStageLabel}` : "已解鎖條件未達成"}`
+        : "解鎖提示：已完成目前章節關卡"}（已解鎖 ${unlockedCount} 關）`
+      : `解鎖提示：維持生命可拿更高星級（目前規則：3★≥18，2★≥10）`;
+  }
   resultUi.stats.innerHTML = `
     <div class="item"><span>地圖 / 關卡</span><strong>${game.mapShortLabel} / ${game.stageShortLabel}</strong></div>
     <div class="item"><span>波次</span><strong>${game.wave}</strong></div>
+    <div class="item"><span>最高到達波次</span><strong>${game.stats.maxWaveReached}</strong></div>
     <div class="item"><span>擊殺</span><strong>${game.kills}</strong></div>
     <div class="item"><span>剩餘生命</span><strong>${game.lives}</strong></div>
     <div class="item"><span>本局金幣</span><strong>${game.gold}</strong></div>
     <div class="item"><span>結算獎勵</span><strong>${victory ? `+${game.lastResultReward || 0}` : "0"}</strong></div>
+    <div class="item"><span>建塔 / 升級</span><strong>${game.stats.towersPlaced} / ${game.stats.towerUpgrades}</strong></div>
+    <div class="item"><span>分支升級 / Boss 擊殺</span><strong>${game.stats.branchUpgrades} / ${game.stats.bossKills}</strong></div>
   `;
   resultUi.nextBtn.disabled = !victory || !nextStageId || !nextUnlocked;
   resultUi.nextBtn.textContent = !victory ? "下一關（需通關）" : nextStageId ? "下一關" : "已是最後一關";
@@ -704,6 +824,7 @@ populateMapStageSelectors();
 setMenuPanel("home");
 renderCodexLists();
 syncMenuSettingsUi();
+refreshTowerInfoPanel();
 
 bindInputHandlers({
   canvas,
@@ -715,14 +836,27 @@ bindInputHandlers({
     const { cellX, cellY } = gridFromMouse(event);
     const existing = game.towers.find((t) => t.cellX === cellX && t.cellY === cellY);
     if (existing) {
+      game.selectedTowerId = existing.id;
+      refreshTowerInfoPanel();
       if (event.shiftKey || event.altKey) {
-        upgradeTowerBranch(existing, event.altKey ? "B" : "A");
+        if (upgradeTowerBranch(existing, event.altKey ? "B" : "A")) {
+          game.stats.branchUpgrades += 1;
+          refreshTowerInfoPanel();
+        }
         return;
       }
-      upgradeTower(existing);
+      if (upgradeTower(existing)) {
+        game.stats.towerUpgrades += 1;
+        refreshTowerInfoPanel();
+      }
       return;
     }
-    placeTower(cellX, cellY);
+    if (placeTower(cellX, cellY)) {
+      game.stats.towersPlaced += 1;
+      const placed = game.towers.find((t) => t.cellX === cellX && t.cellY === cellY);
+      if (placed) game.selectedTowerId = placed.id;
+      refreshTowerInfoPanel();
+    }
   },
   onStartWave: startNextWave,
   onTogglePause: () => {
@@ -743,6 +877,7 @@ bindInputHandlers({
   onSelectTowerType: (towerType) => {
     markTowerSeen(towerType);
     setSelectedTowerType(towerType);
+    refreshTowerInfoPanel();
   },
   onToggleMute: () => {
     ensureAudio();
@@ -877,6 +1012,28 @@ menu.fxDensity?.addEventListener("change", () => {
   persistSettings();
   syncMenuSettingsUi();
 });
+menu.showTowerPanel?.addEventListener("change", () => {
+  game.displaySettings.showTowerPanel = Boolean(menu.showTowerPanel.checked);
+  persistSettings();
+  syncMenuSettingsUi();
+  refreshTowerInfoPanel();
+});
+menu.resetSettingsBtn?.addEventListener("click", () => {
+  game.audioMuted = false;
+  game.bgmVolume = 0.45;
+  game.sfxVolume = 0.7;
+  game.displaySettings.showDamageText = true;
+  game.displaySettings.fxDensity = "中";
+  game.displaySettings.showTowerPanel = true;
+  if (hud.bgmVolume) hud.bgmVolume.value = "45";
+  if (hud.sfxVolume) hud.sfxVolume.value = "70";
+  applyAudioVolumes();
+  persistSettings();
+  syncMenuSettingsUi();
+  updateHud();
+  refreshTowerInfoPanel();
+  setMessage("已重設音訊與顯示設定。");
+});
 menu.codexSearch?.addEventListener("input", () => {
   codexFilters.search = menu.codexSearch.value ?? "";
   renderCodexLists();
@@ -959,6 +1116,7 @@ function loop(ts) {
 
   if (!game.inMainMenu && !game.paused && game.lives > 0) {
     const dt = rawDt * game.timeScale;
+    game.stats.maxWaveReached = Math.max(game.stats.maxWaveReached, game.wave);
     updateSpawning(dt);
     updateTowers(dt);
     updateBullets(dt);
@@ -971,6 +1129,8 @@ function loop(ts) {
     }
     updateHud();
   }
+
+  updateBossAlert(rawDt);
 
   if (game.stageId.startsWith("endless")) {
     const waveBest = bestScores.endlessWave ?? 0;
@@ -1019,10 +1179,12 @@ requestAnimationFrame(loop);
     game.sfxVolume = Number(nativeSettings.sfxVolume ?? game.sfxVolume);
     game.displaySettings.showDamageText = nativeSettings.showDamageText ?? game.displaySettings.showDamageText;
     game.displaySettings.fxDensity = nativeSettings.fxDensity ?? game.displaySettings.fxDensity;
+    game.displaySettings.showTowerPanel = nativeSettings.showTowerPanel ?? game.displaySettings.showTowerPanel;
     if (hud.bgmVolume) hud.bgmVolume.value = String(Math.round(game.bgmVolume * 100));
     if (hud.sfxVolume) hud.sfxVolume.value = String(Math.round(game.sfxVolume * 100));
     applyAudioVolumes();
     syncMenuSettingsUi();
+    refreshTowerInfoPanel();
     updateHud();
   }
 

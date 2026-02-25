@@ -1,4 +1,4 @@
-export function createSpawnSystem({ game, spawnFish, setMessage, playSfx, updateHud, wavePlan }) {
+export function createSpawnSystem({ game, spawnFish, setMessage, playSfx, updateHud, wavePlan, showBossAlert }) {
 function evalCountExpr(expr, wave) {
   if (!expr) return 0;
   let total = expr.base ?? 0;
@@ -64,9 +64,11 @@ function startNextWave() {
   game.spawnQueue = buildWave(game.wave);
   game.spawnTimer = 0;
   game.waveActive = true;
-  if (game.wave % 5 === 0) {
+  const bossInterval = wavePlan.bossWave?.interval ?? 5;
+  if (game.wave > 0 && game.wave % bossInterval === 0) {
     setMessage(`第 ${game.wave} 波 Boss 波次開始！共 ${game.spawnQueue.length} 隻魚。`);
     playSfx("bossAlarm");
+    showBossAlert?.(`Boss 波次開始：第 ${game.wave} 波`, { badge: "BOSS", duration: 2.8 });
   } else {
     setMessage(`第 ${game.wave} 波開始，共 ${game.spawnQueue.length} 隻魚。`);
     playSfx("waveStart");
