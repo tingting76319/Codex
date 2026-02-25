@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>魚塔防禦</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="mainMenuOverlay" class="main-menu-overlay">
+      <section class="main-menu-card" aria-label="主選單">
+        <div class="main-menu-nav">
+          <button id="menuNavHomeBtn" class="is-active">首頁</button>
+          <button id="menuNavStagesBtn">關卡</button>
+          <button id="menuNavCodexBtn">圖鑑</button>
+          <button id="menuNavSettingsBtn">設定</button>
+        </div>
+
+        <div id="menuPanelHome" class="menu-panel is-active">
+          <p class="main-menu-kicker">V2 Prototype</p>
+          <h1>魚塔防禦</h1>
+          <p class="main-menu-desc">選擇地圖與關卡後開始戰鬥，進入海域部署塔台阻止魚群突破基地。</p>
+          <div class="menu-home-summary">
+            <div>
+              <span>目前地圖</span>
+              <strong id="menuCurrentMapLabel">-</strong>
+            </div>
+            <div>
+              <span>目前關卡</span>
+              <strong id="menuCurrentStageLabel">-</strong>
+            </div>
+          </div>
+          <div class="menu-slot-row">
+            <label for="menuSaveSlot">存檔槽</label>
+            <select id="menuSaveSlot">
+              <option value="1">存檔 1</option>
+              <option value="2">存檔 2</option>
+              <option value="3">存檔 3</option>
+            </select>
+            <button id="menuApplySlotBtn">切換</button>
+            <button id="menuResetSlotBtn">清除此槽</button>
+          </div>
+          <div class="main-menu-actions">
+            <button id="menuGoStagesBtn" class="primary">選擇關卡</button>
+            <button id="menuStartBtn">開始目前關卡</button>
+            <button id="menuCloseBtn">關閉主選單</button>
+          </div>
+        </div>
+
+        <div id="menuPanelStages" class="menu-panel">
+          <h2 class="menu-section-title">關卡選擇</h2>
+          <div id="menuMapTabs" class="menu-map-tabs"></div>
+          <div id="menuStageCards" class="menu-stage-cards"></div>
+          <div class="menu-stage-footer">
+            <div class="menu-stage-selected">
+              <span>已選擇</span>
+              <strong id="menuStageSelectionText">-</strong>
+            </div>
+            <div class="main-menu-actions">
+              <button id="menuStageStartBtn" class="primary">開始此關卡</button>
+              <button id="menuBackHomeBtn">返回首頁</button>
+            </div>
+          </div>
+          <div class="main-menu-form legacy-row">
+            <label for="menuMapSelect">地圖</label>
+            <select id="menuMapSelect"></select>
+            <label for="menuStageSelect">關卡</label>
+            <select id="menuStageSelect"></select>
+          </div>
+        </div>
+
+        <div id="menuPanelCodex" class="menu-panel">
+          <h2 class="menu-section-title">圖鑑（預告）</h2>
+          <p class="main-menu-desc">讀取目前遊戲資料表，顯示魚種技能與塔台定位。</p>
+          <div class="menu-codex-filters">
+            <input id="menuCodexSearch" type="search" placeholder="搜尋魚種/塔台名稱..." />
+            <select id="menuCodexTypeFilter">
+              <option value="all">全部</option>
+              <option value="fish">魚種</option>
+              <option value="tower">塔台</option>
+            </select>
+            <select id="menuCodexSizeFilter">
+              <option value="all">全部尺寸</option>
+              <option value="small">小型</option>
+              <option value="medium">中型</option>
+              <option value="large">大型</option>
+              <option value="boss">Boss</option>
+            </select>
+            <select id="menuCodexSkillFilter">
+              <option value="all">全部技能</option>
+              <option value="accelerate_on_hp">加速</option>
+              <option value="armor_static">護甲</option>
+              <option value="split_on_death">分裂</option>
+              <option value="boss_summon_threshold">Boss 召喚</option>
+              <option value="boss_shield_threshold">Boss 護盾</option>
+            </select>
+          </div>
+          <div class="menu-codex-columns">
+            <div>
+              <h3 class="menu-subtitle">魚種圖鑑</h3>
+              <div id="menuFishCodexList" class="menu-codex-list"></div>
+            </div>
+            <div>
+              <h3 class="menu-subtitle">塔台圖鑑</h3>
+              <div id="menuTowerCodexList" class="menu-codex-list"></div>
+            </div>
+          </div>
+          <div class="main-menu-actions">
+            <button id="menuCodexToStagesBtn" class="primary">去選關卡</button>
+            <button id="menuCodexCloseBtn">關閉主選單</button>
+          </div>
+        </div>
+
+        <div id="menuPanelSettings" class="menu-panel">
+          <h2 class="menu-section-title">設定</h2>
+          <p class="main-menu-desc">主選單也可直接調整音訊與顯示選項，會同步到 HUD。</p>
+          <div class="menu-settings-grid">
+            <div class="menu-setting-card">
+              <h3 class="menu-subtitle">音訊</h3>
+              <div class="audio-row menu-audio-row">
+                <label for="menuMuteBtn">靜音</label>
+                <button id="menuMuteBtn">音訊開啟</button>
+                <span id="menuMuteState">開</span>
+              </div>
+              <div class="audio-row menu-audio-row">
+                <label for="menuBgmVolume">BGM</label>
+                <input id="menuBgmVolume" type="range" min="0" max="100" value="45" />
+                <span id="menuBgmVolumeValue">45</span>
+              </div>
+              <div class="audio-row menu-audio-row">
+                <label for="menuSfxVolume">SFX</label>
+                <input id="menuSfxVolume" type="range" min="0" max="100" value="70" />
+                <span id="menuSfxVolumeValue">70</span>
+              </div>
+              <div class="menu-setting-line">
+                <label for="menuSaveSlotMirror">存檔槽</label>
+                <select id="menuSaveSlotMirror">
+                  <option value="1">存檔 1</option>
+                  <option value="2">存檔 2</option>
+                  <option value="3">存檔 3</option>
+                </select>
+              </div>
+            </div>
+            <div class="menu-setting-card">
+              <h3 class="menu-subtitle">顯示</h3>
+              <div class="menu-setting-line">
+                <label for="menuShowDamageText">傷害數字（預告）</label>
+                <input id="menuShowDamageText" type="checkbox" />
+              </div>
+              <div class="menu-setting-line">
+                <label for="menuFxDensity">特效強度（預告）</label>
+                <select id="menuFxDensity">
+                  <option>低</option>
+                  <option selected>中</option>
+                  <option>高</option>
+                </select>
+              </div>
+              <p class="main-menu-desc">已接上 renderer：特效密度會影響粒子數量，傷害數字可開關。</p>
+            </div>
+          </div>
+          <div class="main-menu-actions">
+            <button id="menuSettingsToStagesBtn" class="primary">去選關卡</button>
+            <button id="menuSettingsCloseBtn">關閉主選單</button>
+          </div>
+        </div>
+
+        <div id="menuCodexDetailOverlay" class="menu-detail-overlay is-hidden" aria-hidden="true">
+          <div class="menu-detail-card">
+            <div class="menu-detail-header">
+              <div>
+                <p id="menuDetailType" class="main-menu-kicker">圖鑑詳情</p>
+                <h3 id="menuDetailTitle" class="menu-section-title">-</h3>
+              </div>
+              <button id="menuDetailCloseBtn">關閉</button>
+            </div>
+            <p id="menuDetailMeta" class="main-menu-desc">-</p>
+            <div id="menuDetailPreview" class="menu-detail-preview"></div>
+            <div id="menuDetailBody" class="menu-detail-body"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <main class="app-shell">
+      <div id="resultOverlay" class="result-overlay is-hidden">
+        <section class="result-card">
+          <p id="resultKicker" class="main-menu-kicker">關卡結算</p>
+          <h2 id="resultTitle" class="menu-section-title">-</h2>
+          <p id="resultSummary" class="main-menu-desc">-</p>
+          <div id="resultStats" class="result-stats"></div>
+          <div class="main-menu-actions">
+            <button id="resultRetryBtn">重玩本關</button>
+            <button id="resultNextBtn" class="primary">下一關</button>
+            <button id="resultMenuBtn">回主選單</button>
+          </div>
+        </section>
+      </div>
+      <section class="hud-panel">
+        <h1>魚塔防禦</h1>
+        <div class="hud-grid">
+          <div><span>生命</span><strong id="lives">20</strong></div>
+          <div><span>金幣</span><strong id="gold">120</strong></div>
+          <div><span>波次</span><strong id="wave">1</strong></div>
+          <div><span>擊殺</span><strong id="kills">0</strong></div>
+        </div>
+        <div class="controls">
+          <button id="waveBtn" class="primary">開始/下一波</button>
+          <button id="pauseBtn">暫停</button>
+          <button id="speedBtn">x1 速度</button>
+        </div>
+        <div class="tower-card">
+          <h2>地圖 / 關卡</h2>
+          <div class="audio-row">
+            <label for="mapSelect">地圖</label>
+            <select id="mapSelect"></select>
+            <span id="mapLabel">-</span>
+          </div>
+          <div class="audio-row">
+            <label for="stageSelect">關卡</label>
+            <select id="stageSelect"></select>
+            <span id="stageLabel">-</span>
+          </div>
+          <div class="controls">
+            <button id="applyStageBtn">套用並重開</button>
+          </div>
+          <p>切換地圖或關卡會重新開始當前對局。</p>
+        </div>
+        <div class="tower-card">
+          <h2>音訊</h2>
+          <div class="controls">
+            <button id="muteBtn">音訊開啟</button>
+          </div>
+          <div class="audio-row">
+            <label for="bgmVolume">BGM</label>
+            <input id="bgmVolume" type="range" min="0" max="100" value="45" />
+            <span id="bgmVolumeValue">45</span>
+          </div>
+          <div class="audio-row">
+            <label for="sfxVolume">SFX</label>
+            <input id="sfxVolume" type="range" min="0" max="100" value="70" />
+            <span id="sfxVolumeValue">70</span>
+          </div>
+          <p>首次點擊畫面後會啟用音樂與音效。</p>
+        </div>
+        <div class="tower-card">
+          <h2>塔台種類</h2>
+          <div class="controls">
+            <button id="towerTypeBasicBtn" class="tower-type-btn is-active">標準塔 (40)</button>
+            <button id="towerTypeSlowBtn" class="tower-type-btn">緩速塔 (55)</button>
+            <button id="towerTypeSplashBtn" class="tower-type-btn">範圍塔 (70)</button>
+          </div>
+          <p>點擊切換欲部署塔種，再點地圖放置。</p>
+        </div>
+        <div class="tower-card">
+          <h2>部署塔台</h2>
+          <p>點擊海域格子放置目前選擇的塔台（依塔種成本），再點同一塔台可升級</p>
+          <ul>
+            <li>初始: 傷害 16 / 射程中 / 攻速快</li>
+            <li>升級: 提升傷害、射程、攻速</li>
+            <li>最高等級: Lv.4</li>
+            <li>分支技能樹: Shift+點塔(路線A) / Alt+點塔(路線B)</li>
+          </ul>
+        </div>
+        <div class="legend">
+          <h2>魚種與尺寸</h2>
+          <div class="legend-row"><span class="dot shark"></span>鯊魚（中/大）</div>
+          <div class="legend-row"><span class="dot whale"></span>鯨魚（大）</div>
+          <div class="legend-row"><span class="dot tuna"></span>鮪魚（小/中）</div>
+          <div class="legend-row"><span class="dot puffer"></span>河豚（小）</div>
+          <div class="legend-row"><span class="dot swordfish"></span>旗魚（中）</div>
+          <div class="legend-row"><span class="dot whale"></span>魚王 Boss（每 5 波）</div>
+          <div class="legend-row">技能: 加速 / 護甲 / 分裂 / 召喚 / 護盾階段</div>
+        </div>
+        <p id="message" class="message">點擊「開始/下一波」生成魚群。</p>
+      </section>
+      <section class="game-panel">
+        <canvas id="gameCanvas" width="980" height="760" aria-label="Fish tower defense game"></canvas>
+      </section>
+    </main>
+    <script type="module" src="./game.js"></script>
+  </body>
+  </html>

@@ -1,0 +1,27 @@
+{
+  "id": "stage_shallow_intro",
+  "label": "淺海灣 1-1",
+  "mode": "stage",
+  "maxWaves": 8,
+  "spawnTiming": {
+    "normalBase": 0.5,
+    "normalJitter": 0.22,
+    "bossFixed": 1.15
+  },
+  "bossWave": {
+    "interval": 4,
+    "bossKind": "bossWhaleKing",
+    "spawnLast": true,
+    "extraRules": [
+      { "kind": "sharkLarge", "count": { "base": 1, "terms": [{ "type": "floorDiv", "value": "wave", "divisor": 4 }] } },
+      { "kind": "swordfish", "count": { "base": 2 } }
+    ]
+  },
+  "rules": [
+    { "kind": "tunaSmall", "unlockWave": 1, "count": { "base": 4, "terms": [{ "type": "mul", "value": "wave", "factor": 1 }] } },
+    { "kind": "puffer", "unlockWave": 1, "count": { "base": 1, "terms": [{ "type": "floorDiv", "value": "wave", "divisor": 2 }] } },
+    { "kind": "tunaMedium", "unlockWave": 2, "count": { "base": 2, "terms": [{ "type": "floorDiv", "value": "wave", "divisor": 1 }] } },
+    { "kind": "sharkSmall", "unlockWave": 3, "count": { "base": 1, "terms": [{ "type": "floorDiv", "value": "wave", "divisor": 2 }] } },
+    { "kind": "swordfish", "unlockWave": 4, "count": { "base": 1, "terms": [{ "type": "floorDiv", "value": "wave", "divisor": 2 }] } }
+  ]
+}

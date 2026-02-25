@@ -1,0 +1,47 @@
+{
+  "name": "fish-tower-defense",
+  "version": "1.0.0",
+  "description": "Fish tower defense game with multiple fish sizes and species.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist:mac": "electron-builder --mac dmg --arm64",
+    "dist:mac:arm64": "electron-builder --mac dmg --arm64",
+    "dist:mac:x64": "electron-builder --mac dmg --x64",
+    "dist:mac:universal": "electron-builder --mac dmg --universal",
+    "version:patch": "npm version patch --no-git-tag-version && npm run release:print-version",
+    "version:minor": "npm version minor --no-git-tag-version && npm run release:print-version",
+    "version:major": "npm version major --no-git-tag-version && npm run release:print-version",
+    "release:print-version": "node -e \"console.log(require('./package.json').version)\"",
+    "release:print-tag": "node -e \"const v=require('./package.json').version; console.log('v'+v)\"",
+    "release:verify-tag": "node ./scripts/check-tag-version.js"
+  },
+  "devDependencies": {
+    "@electron/notarize": "^2.5.0",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.codex.fishtowerdefense",
+    "productName": "魚塔防禦",
+    "files": [
+      "**/*",
+      "!dist/**",
+      "!node_modules/.cache/**"
+    ],
+    "afterSign": "scripts/notarize.js",
+    "mac": {
+      "category": "public.app-category.games",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.inherit.plist",
+      "target": [
+        "dmg"
+      ]
+    },
+    "dmg": {
+      "title": "魚塔防禦 安裝程式"
+    }
+  }
+}

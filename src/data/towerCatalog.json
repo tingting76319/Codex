@@ -1,0 +1,38 @@
+{
+  "basic": {
+    "label": "標準塔",
+    "color": "#55d8ff",
+    "cost": 40,
+    "range": 155,
+    "fireRate": 0.42,
+    "damage": 16,
+    "projectileSpeed": 340,
+    "upgradeCost": 55
+  },
+  "slow": {
+    "label": "緩速塔",
+    "color": "#9effd5",
+    "cost": 55,
+    "range": 145,
+    "fireRate": 0.62,
+    "damage": 9,
+    "projectileSpeed": 300,
+    "upgradeCost": 70,
+    "slow": {
+      "multiplier": 0.58,
+      "duration": 1.35
+    }
+  },
+  "splash": {
+    "label": "範圍塔",
+    "color": "#ffb17c",
+    "cost": 70,
+    "range": 170,
+    "fireRate": 0.95,
+    "damage": 22,
+    "projectileSpeed": 285,
+    "upgradeCost": 88,
+    "splashRadius": 70,
+    "splashRatio": 0.65
+  }
+}

@@ -1,0 +1,1039 @@
+import { canvas, ctx, hud, menu, resultUi } from "./ui/dom.js";
+import { createHudController } from "./ui/hudController.js";
+import { bindInputHandlers } from "./ui/inputController.js";
+import { createMapRuntime } from "./core/map.js";
+import { towerCatalog } from "./data/towerCatalog.js";
+import { fishCatalog } from "./data/fishCatalog.js";
+import { defaultMapId, mapCatalog } from "./data/maps/mapCatalog.js";
+import { defaultStageId, stageCatalog } from "./data/waves/stageCatalog.js";
+import { createFishFactory } from "./entities/fishFactory.js";
+import { createAudioSystem } from "./systems/audioSystem.js";
+import { createCombatSystem } from "./systems/combatSystem.js";
+import { createSpawnSystem } from "./systems/spawnSystem.js";
+import { createTowerSystem } from "./systems/towerSystem.js";
+import { createRenderer } from "./render/renderer.js";
+
+const urlParams = new URLSearchParams(window.location.search);
+const activeSaveSlot = ["1", "2", "3"].includes(urlParams.get("slot")) ? urlParams.get("slot") : "1";
+const STORAGE_KEYS = {
+  progress: `fish-td-v2-progress-slot${activeSaveSlot}`,
+  settings: "fish-td-v2-settings"
+};
+
+function loadJsonStorage(key, fallback) {
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return fallback;
+    return { ...fallback, ...JSON.parse(raw) };
+  } catch {
+    return fallback;
+  }
+}
+
+function saveJsonStorage(key, value) {
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Ignore localStorage failures in restricted environments.
+  }
+}
+
+async function readPersistentSave(key) {
+  try {
+    if (window.gameBridge?.readSave) {
+      const res = await window.gameBridge.readSave(key);
+      if (res?.ok && res.data && typeof res.data === "object") return res.data;
+    }
+  } catch {}
+  return loadJsonStorage(key, {});
+}
+
+function writePersistentSave(key, value) {
+  saveJsonStorage(key, value);
+  try {
+    if (window.gameBridge?.writeSave) {
+      window.gameBridge.writeSave(key, value).catch(() => {});
+    }
+  } catch {}
+}
+
+const savedSettings = loadJsonStorage(STORAGE_KEYS.settings, {
+  audioMuted: false,
+  bgmVolume: Number(hud.bgmVolume?.value ?? 45) / 100,
+  sfxVolume: Number(hud.sfxVolume?.value ?? 70) / 100,
+  showDamageText: true,
+  fxDensity: "中"
+});
+const savedProgress = loadJsonStorage(STORAGE_KEYS.progress, {
+  stars: {},
+  unlockedStages: ["endless_default", "stage_shallow_intro"],
+  bestScores: {},
+  seenFish: [],
+  seenTowers: []
+});
+const requestedStageId = urlParams.get("stage") ?? defaultStageId;
+const requestedMapId = urlParams.get("map");
+const initialStage = stageCatalog[requestedStageId] ?? stageCatalog[defaultStageId];
+const stageMapId = initialStage?.mapId ?? defaultMapId;
+const resolvedMapId = mapCatalog[requestedMapId] && requestedMapId === stageMapId ? requestedMapId : stageMapId;
+
+const game = {
+  lives: 20,
+  gold: 120,
+  kills: 0,
+  wave: 0,
+  timeScale: 1,
+  paused: true,
+  towers: [],
+  bullets: [],
+  fishes: [],
+  particles: [],
+  spawnQueue: [],
+  spawnTimer: 0,
+  waveActive: false,
+  nextFishId: 1,
+  inMainMenu: true,
+  mapId: resolvedMapId,
+  stageId: initialStage.id,
+  stageLabel: initialStage.label,
+  stageShortLabel: initialStage.label,
+  mapShortLabel: (mapCatalog[resolvedMapId]?.name ?? resolvedMapId),
+  stageCleared: false,
+  selectedTowerType: "basic",
+  audioMuted: Boolean(savedSettings.audioMuted),
+  bgmVolume: Number(savedSettings.bgmVolume ?? (Number(hud.bgmVolume?.value ?? 45) / 100)),
+  sfxVolume: Number(savedSettings.sfxVolume ?? (Number(hud.sfxVolume?.value ?? 70) / 100)),
+  gameOverSfxPlayed: false,
+  stageRewarded: false,
+  lastAwardedStars: 0,
+  lastResultReward: 0,
+  currentSaveSlot: activeSaveSlot,
+  resultShown: false,
+  displaySettings: {
+    showDamageText: savedSettings.showDamageText !== false,
+    fxDensity: ["低", "中", "高"].includes(savedSettings.fxDensity) ? savedSettings.fxDensity : "中"
+  }
+};
+
+if (hud.bgmVolume) hud.bgmVolume.value = String(Math.round(game.bgmVolume * 100));
+if (hud.sfxVolume) hud.sfxVolume.value = String(Math.round(game.sfxVolume * 100));
+
+const activeMap = mapCatalog[game.mapId] ?? mapCatalog[defaultMapId];
+const { GRID, pathCells, pathPoints, pathCellSet } = createMapRuntime(activeMap);
+const activeStage = stageCatalog[game.stageId] ?? stageCatalog[defaultStageId];
+
+const { updateAudioHud, applyAudioVolumes, ensureAudio, playSfx, updateBgmScheduler } = createAudioSystem({ game, hud });
+const { setMessage, updateHud } = createHudController({ hud, game, updateAudioHud });
+
+const fishFactory = createFishFactory({ game, fishCatalog, pathPoints });
+const spawnFish = (kindKey, overrides) => {
+  markFishSeen(kindKey);
+  return fishFactory.spawnFish(kindKey, overrides);
+};
+
+function gridFromMouse(event) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const x = (event.clientX - rect.left) * scaleX;
+  const y = (event.clientY - rect.top) * scaleY;
+
+  const cellX = Math.floor((x - GRID.x) / GRID.size);
+  const cellY = Math.floor((y - GRID.y) / GRID.size);
+  return { x, y, cellX, cellY };
+}
+
+const { makeTower, placeTower, upgradeTower, upgradeTowerBranch, setSelectedTowerType } = createTowerSystem({
+  game,
+  GRID,
+  pathCellSet,
+  towerCatalog,
+  setMessage,
+  playSfx,
+  updateHud,
+  ensureAudio,
+  burst: (...args) => burst(...args)
+});
+
+markTowerSeen(game.selectedTowerType);
+
+const { burst, updateTowers, updateBullets, updateParticles, updateFishes } = createCombatSystem({
+  game,
+  fishCatalog,
+  pathPoints,
+  spawnFish,
+  setMessage,
+  playSfx
+});
+
+const { startNextWave, updateSpawning } = createSpawnSystem({
+  game,
+  spawnFish,
+  setMessage,
+  playSfx,
+  updateHud,
+  wavePlan: activeStage.wavePlan
+});
+
+let pendingMapId = game.mapId;
+let pendingStageId = game.stageId;
+let activeMenuPanel = "home";
+const stageStarProgress = { ...(savedProgress.stars ?? {}) };
+const unlockedStages = new Set(savedProgress.unlockedStages ?? ["endless_default", "stage_shallow_intro"]);
+const bestScores = { ...(savedProgress.bestScores ?? {}) };
+const seenFish = new Set(savedProgress.seenFish ?? []);
+const seenTowers = new Set(savedProgress.seenTowers ?? []);
+let activeCodexDetail = null;
+const codexFilters = {
+  search: "",
+  type: "all",
+  size: "all",
+  skill: "all"
+};
+
+function skillLabel(skill) {
+  if (!skill?.type) return "未知";
+  const map = {
+    accelerate_on_hp: "低血加速",
+    armor_static: "護甲",
+    split_on_death: "死亡分裂",
+    boss_summon_threshold: "召喚魚群",
+    boss_shield_threshold: "護盾階段"
+  };
+  return map[skill.type] ?? skill.type;
+}
+
+function stageMetaSummary(stage) {
+  const isEndless = stage.id.startsWith("endless");
+  if (isEndless) return { modeLabel: "無盡模式", waveLabel: "Boss 每 5 波", bossLabel: "深海鯨王" };
+  const waveCount = Number(stage.wavePlan?.maxWaves ?? 0);
+  const hasBoss = Boolean(stage.wavePlan?.bossWave?.bossKind);
+  return {
+    modeLabel: "關卡模式",
+    waveLabel: `${waveCount || "?"} 波`,
+    bossLabel: hasBoss ? "含 Boss" : "一般波次"
+  };
+}
+
+function starsText(stageId) {
+  const stars = stageStarProgress[stageId] ?? 0;
+  return `${"★".repeat(stars)}${"☆".repeat(Math.max(0, 3 - stars))}`;
+}
+
+function mapPreviewSrc(mapId) {
+  const table = {
+    defaultMap: "./assets/map-previews/shallow-bay.svg",
+    coralMaze: "./assets/map-previews/coral-maze.svg",
+    deepTrench: "./assets/map-previews/deep-trench.svg"
+  };
+  return table[mapId] ?? table.defaultMap;
+}
+
+function describeSkill(skill) {
+  switch (skill?.type) {
+    case "accelerate_on_hp":
+      return `低血量（${Math.round((skill.triggerHpRatio ?? 0) * 100)}%）時速度提升至 ${(skill.multiplier ?? 1).toFixed(2)}x`;
+    case "armor_static":
+      return `固定護甲減傷，實際承傷 ${(Math.round((skill.armorRatio ?? 1) * 100))}%`;
+    case "split_on_death":
+      return `死亡時分裂 ${skill.count ?? 0} 隻 ${fishCatalog[skill.into]?.label ?? skill.into}（HP ${(Math.round((skill.hpScale ?? 1) * 100))}%）`;
+    case "boss_summon_threshold":
+      return `血量門檻召喚魚群（${(skill.thresholds ?? []).map((t) => `${Math.round(t * 100)}%`).join(" / ")}）`;
+    case "boss_shield_threshold":
+      return `血量門檻展開護盾（${(skill.thresholds ?? []).map((t) => `${Math.round(t * 100)}%`).join(" / ")}），護盾值 ${(Math.round((skill.shieldRatio ?? 0) * 100))}%`;
+    default:
+      return skillLabel(skill);
+  }
+}
+
+function getStagesContainingFish(targetFishId) {
+  const result = [];
+  for (const stage of Object.values(stageCatalog)) {
+    const ids = new Set();
+    for (const rule of stage.wavePlan?.rules ?? []) ids.add(rule.kind);
+    for (const rule of stage.wavePlan?.bossWave?.extraRules ?? []) ids.add(rule.kind);
+    if (stage.wavePlan?.bossWave?.bossKind) ids.add(stage.wavePlan.bossWave.bossKind);
+    if (ids.has(targetFishId)) result.push(stage.label);
+  }
+  return result;
+}
+
+function stageEntriesForMap(mapId) {
+  return Object.values(stageCatalog).filter((stage) => stage.mapId === mapId);
+}
+
+function orderedStageIds() {
+  return Object.keys(stageCatalog).filter((id) => !id.startsWith("endless"));
+}
+
+function isStageUnlocked(stageId) {
+  return stageId.startsWith("endless") || unlockedStages.has(stageId);
+}
+
+function fillMapOptions(selectEl) {
+  if (!selectEl) return;
+  selectEl.innerHTML = "";
+  for (const [mapId, mapInfo] of Object.entries(mapCatalog)) {
+    const option = document.createElement("option");
+    option.value = mapId;
+    option.textContent = mapInfo.name ?? mapId;
+    selectEl.append(option);
+  }
+}
+
+function fillStageOptions(selectEl, mapId) {
+  if (!selectEl) return;
+  const stages = stageEntriesForMap(mapId);
+  selectEl.innerHTML = "";
+  for (const stage of stages) {
+    const option = document.createElement("option");
+    option.value = stage.id;
+    option.textContent = stage.label;
+    selectEl.append(option);
+  }
+  if (!stages.some((s) => s.id === pendingStageId)) {
+    pendingStageId = stages[0]?.id ?? defaultStageId;
+  }
+  selectEl.value = pendingStageId;
+}
+
+function syncSelectorValues() {
+  if (hud.mapSelect) hud.mapSelect.value = pendingMapId;
+  if (hud.stageSelect) hud.stageSelect.value = pendingStageId;
+  if (menu.mapSelect) menu.mapSelect.value = pendingMapId;
+  if (menu.stageSelect) menu.stageSelect.value = pendingStageId;
+}
+
+function updatePendingLabels() {
+  if (hud.mapLabel) hud.mapLabel.textContent = mapCatalog[pendingMapId]?.name ?? pendingMapId;
+  if (hud.stageLabel) hud.stageLabel.textContent = stageCatalog[pendingStageId]?.label ?? pendingStageId;
+  if (menu.currentMapLabel) menu.currentMapLabel.textContent = mapCatalog[pendingMapId]?.name ?? pendingMapId;
+  if (menu.currentStageLabel) menu.currentStageLabel.textContent = stageCatalog[pendingStageId]?.label ?? pendingStageId;
+  if (menu.stageSelectionText) {
+    const mapName = mapCatalog[pendingMapId]?.name ?? pendingMapId;
+    const stageName = stageCatalog[pendingStageId]?.label ?? pendingStageId;
+    menu.stageSelectionText.textContent = `${mapName} / ${stageName}`;
+  }
+}
+
+function syncMenuSettingsUi() {
+  if (menu.bgmVolume) menu.bgmVolume.value = String(Math.round(game.bgmVolume * 100));
+  if (menu.sfxVolume) menu.sfxVolume.value = String(Math.round(game.sfxVolume * 100));
+  if (menu.bgmVolumeValue) menu.bgmVolumeValue.textContent = String(Math.round(game.bgmVolume * 100));
+  if (menu.sfxVolumeValue) menu.sfxVolumeValue.textContent = String(Math.round(game.sfxVolume * 100));
+  if (menu.muteBtn) menu.muteBtn.textContent = game.audioMuted ? "靜音中" : "音訊開啟";
+  if (menu.muteState) menu.muteState.textContent = game.audioMuted ? "關" : "開";
+  if (menu.showDamageText) menu.showDamageText.checked = game.displaySettings.showDamageText;
+  if (menu.fxDensity) menu.fxDensity.value = game.displaySettings.fxDensity;
+  if (menu.saveSlot) menu.saveSlot.value = game.currentSaveSlot;
+  if (menu.saveSlotMirror) menu.saveSlotMirror.value = game.currentSaveSlot;
+}
+
+function persistSettings() {
+  writePersistentSave(STORAGE_KEYS.settings, {
+    audioMuted: game.audioMuted,
+    bgmVolume: game.bgmVolume,
+    sfxVolume: game.sfxVolume,
+    showDamageText: game.displaySettings.showDamageText,
+    fxDensity: game.displaySettings.fxDensity
+  });
+}
+
+function persistProgress() {
+  writePersistentSave(STORAGE_KEYS.progress, {
+    stars: stageStarProgress,
+    unlockedStages: [...unlockedStages],
+    bestScores,
+    seenFish: [...seenFish],
+    seenTowers: [...seenTowers]
+  });
+}
+
+function markFishSeen(fishId) {
+  if (!fishId || seenFish.has(fishId)) return;
+  seenFish.add(fishId);
+  persistProgress();
+  if (activeMenuPanel === "codex") renderCodexLists();
+}
+
+function markTowerSeen(towerId) {
+  if (!towerId || seenTowers.has(towerId)) return;
+  seenTowers.add(towerId);
+  persistProgress();
+  if (activeMenuPanel === "codex") renderCodexLists();
+}
+
+function awardStageStarsIfNeeded() {
+  const stage = stageCatalog[game.stageId];
+  if (!game.stageCleared || game.stageRewarded || !stage || stage.id.startsWith("endless")) return;
+  let stars = 1;
+  if (game.lives >= 18) stars = 3;
+  else if (game.lives >= 10) stars = 2;
+  const clearReward = 40 + game.wave * 5 + game.kills + stars * 20;
+  game.gold += clearReward;
+  stageStarProgress[stage.id] = Math.max(stageStarProgress[stage.id] ?? 0, stars);
+  game.stageRewarded = true;
+  game.lastAwardedStars = stars;
+  game.lastResultReward = clearReward;
+  const ids = orderedStageIds();
+  const idx = ids.indexOf(stage.id);
+  if (idx >= 0 && ids[idx + 1]) unlockedStages.add(ids[idx + 1]);
+  persistProgress();
+  renderMenuStageCards();
+  updatePendingLabels();
+  setMessage(`關卡完成！獲得 ${starsText(stage.id)}（本次 ${stars} 星）。`);
+}
+
+function openCodexDetail(detail) {
+  activeCodexDetail = detail;
+  if (!menu.codexDetailOverlay || !menu.detailBody) return;
+  menu.detailType.textContent = detail.kind === "fish" ? "魚種圖鑑" : "塔台圖鑑";
+  menu.detailTitle.textContent = detail.title;
+  menu.detailMeta.textContent = detail.meta;
+  if (menu.detailPreview) {
+    const color = detail.color ?? "#7fb0ff";
+    const previewStats = detail.previewStats ?? [];
+    menu.detailPreview.innerHTML = `
+      <div class="sprite" style="--preview-color:${color}"></div>
+      <div class="trail"></div>
+      <div class="hud">${previewStats.map((s) => `<div>${s}</div>`).join("")}</div>
+    `;
+  }
+  menu.detailBody.innerHTML = "";
+  for (const line of detail.rows) {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.textContent = line;
+    menu.detailBody.append(row);
+  }
+  menu.codexDetailOverlay.classList.remove("is-hidden");
+  menu.codexDetailOverlay.setAttribute("aria-hidden", "false");
+}
+
+function closeCodexDetail() {
+  activeCodexDetail = null;
+  menu.codexDetailOverlay?.classList.add("is-hidden");
+  menu.codexDetailOverlay?.setAttribute("aria-hidden", "true");
+}
+
+function renderCodexLists() {
+  const q = codexFilters.search.trim().toLowerCase();
+  const typeFilter = codexFilters.type;
+  const sizeFilter = codexFilters.size;
+  const skillFilter = codexFilters.skill;
+  if (menu.fishCodexList?.parentElement) {
+    menu.fishCodexList.parentElement.style.display = typeFilter === "tower" ? "none" : "";
+  }
+  if (menu.towerCodexList?.parentElement) {
+    menu.towerCodexList.parentElement.style.display = typeFilter === "fish" ? "none" : "";
+  }
+  if (menu.fishCodexList) {
+    menu.fishCodexList.innerHTML = "";
+    for (const [fishId, fish] of Object.entries(fishCatalog)) {
+      if (typeFilter === "tower") continue;
+      if (sizeFilter !== "all" && fish.sizeClass !== sizeFilter) continue;
+      if (skillFilter !== "all" && !(fish.skills ?? []).some((s) => s.type === skillFilter)) continue;
+      if (q) {
+        const hay = `${fishId} ${fish.label} ${fish.species}`.toLowerCase();
+        if (!hay.includes(q)) continue;
+      }
+      const isSeen = seenFish.has(fishId);
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = `menu-codex-item${isSeen ? "" : " is-unseen"}`;
+      const skills = (fish.skills ?? []).map(skillLabel).join(" / ") || "無";
+      item.innerHTML = `
+        <div class="title"><span class="swatch" style="background:${isSeen ? (fish.color ?? "#88d") : "#6a7f8a"}"></span>${isSeen ? fish.label : "未遇見魚種"}</div>
+        <div class="meta">${isSeen ? `${fish.species} · ${fish.sizeClass} · HP ${fish.hp} · 速度 ${fish.speed}` : `${fish.species} · ${fish.sizeClass}`}</div>
+        <div class="skills">技能：${isSeen ? skills : "尚未觀測"}</div>
+      `;
+      item.addEventListener("click", () => {
+        if (!isSeen) {
+          openCodexDetail({
+            kind: "fish",
+            title: "未遇見魚種",
+            meta: `${fish.species} · ${fish.sizeClass}`,
+            color: "#6a7f8a",
+            previewStats: ["尚未遭遇", "請於關卡中觀測"],
+            rows: ["此魚種尚未在目前存檔槽遭遇。進入關卡並遇到後將解鎖完整資料。"]
+          });
+          return;
+        }
+        const appearStages = getStagesContainingFish(fishId);
+        openCodexDetail({
+          kind: "fish",
+          title: fish.label,
+          meta: `${fish.species} · ${fish.sizeClass} · HP ${fish.hp} · 速度 ${fish.speed} · 獎勵 ${fish.reward}`,
+          color: fish.color,
+          previewStats: [`體型 ${fish.sizeClass}`, `攻擊 ${fish.damage}`, `獎勵 ${fish.reward}`],
+          rows: [
+            `技能：${(fish.skills ?? []).map(describeSkill).join("；") || "無"}`,
+            `突破傷害：${fish.damage} / 半徑：${fish.radius}`,
+            `出現關卡：${appearStages.join("、") || "目前未配置"}`
+          ]
+        });
+      });
+      menu.fishCodexList.append(item);
+    }
+  }
+  if (menu.towerCodexList) {
+    menu.towerCodexList.innerHTML = "";
+    for (const [towerId, tower] of Object.entries(towerCatalog)) {
+      if (typeFilter === "fish") continue;
+      if (q) {
+        const hay = `${towerId} ${tower.label}`.toLowerCase();
+        if (!hay.includes(q)) continue;
+      }
+      const isSeen = seenTowers.has(towerId);
+      const traits = [];
+      if (tower.slow) traits.push(`緩速 ${Math.round((1 - tower.slow.multiplier) * 100)}%`);
+      if (tower.splashRadius) traits.push(`範圍 ${tower.splashRadius}`);
+      if (!traits.length) traits.push("單體輸出");
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = `menu-codex-item${isSeen ? "" : " is-unseen"}`;
+      item.innerHTML = `
+        <div class="title"><span class="swatch" style="background:${isSeen ? (tower.color ?? "#5ad") : "#6a7f8a"}"></span>${isSeen ? tower.label : "未部署塔台"}</div>
+        <div class="meta">${isSeen ? `成本 ${tower.cost} · 傷害 ${tower.damage} · 射程 ${tower.range} · 攻速 ${tower.fireRate.toFixed(2)}s` : `代號 ${towerId}`}</div>
+        <div class="skills">定位：${isSeen ? traits.join(" / ") : "尚未部署"}</div>
+      `;
+      item.addEventListener("click", () => {
+        if (!isSeen) {
+          openCodexDetail({
+            kind: "tower",
+            title: "未部署塔台",
+            meta: `代號 ${towerId}`,
+            color: "#6a7f8a",
+            previewStats: ["尚未部署", "請於戰鬥中使用"],
+            rows: ["此塔台尚未在目前存檔槽部署。切換塔台並放置後將解鎖完整資料。"]
+          });
+          return;
+        }
+        const rows = [
+          `基礎屬性：傷害 ${tower.damage}、射程 ${tower.range}、攻速 ${tower.fireRate.toFixed(2)} 秒、彈速 ${tower.projectileSpeed}`,
+          `升級成本起始：${tower.upgradeCost}`,
+          `定位說明：${traits.join("；")}`
+        ];
+        if (tower.slow) rows.push(`緩速效果：命中後 ${(Math.round((1 - tower.slow.multiplier) * 100))}% 緩速，持續 ${tower.slow.duration} 秒`);
+        if (tower.splashRadius) rows.push(`範圍效果：半徑 ${tower.splashRadius}，濺射倍率 ${Math.round((tower.splashRatio ?? 0) * 100)}%`);
+        openCodexDetail({
+          kind: "tower",
+          title: tower.label,
+          meta: `代號 ${towerId} · 成本 ${tower.cost}`,
+          color: tower.color,
+          previewStats: [`傷害 ${tower.damage}`, `射程 ${tower.range}`, `攻速 ${tower.fireRate.toFixed(2)}s`],
+          rows
+        });
+      });
+      menu.towerCodexList.append(item);
+    }
+  }
+}
+
+function hideResultOverlay() {
+  resultUi.overlay?.classList.add("is-hidden");
+}
+
+function getNextPlayableStageId(currentStageId) {
+  const ids = orderedStageIds();
+  const idx = ids.indexOf(currentStageId);
+  if (idx < 0) return null;
+  return ids[idx + 1] ?? null;
+}
+
+function openResultOverlay({ victory }) {
+  if (!resultUi.overlay || !resultUi.stats) return;
+  game.paused = true;
+  const nextStageId = getNextPlayableStageId(game.stageId);
+  const nextUnlocked = nextStageId ? isStageUnlocked(nextStageId) : false;
+  resultUi.kicker.textContent = victory ? "關卡結算" : "戰鬥失敗";
+  resultUi.title.textContent = victory ? "任務完成" : "防線失守";
+  resultUi.summary.textContent = victory
+    ? `${game.stageLabel} 通關，獲得 ${game.lastAwardedStars || 0} 星，結算獎勵 +${game.lastResultReward || 0} 金幣。`
+    : `${game.stageLabel} 挑戰失敗，請調整塔台配置再試一次。`;
+  resultUi.stats.innerHTML = `
+    <div class="item"><span>地圖 / 關卡</span><strong>${game.mapShortLabel} / ${game.stageShortLabel}</strong></div>
+    <div class="item"><span>波次</span><strong>${game.wave}</strong></div>
+    <div class="item"><span>擊殺</span><strong>${game.kills}</strong></div>
+    <div class="item"><span>剩餘生命</span><strong>${game.lives}</strong></div>
+    <div class="item"><span>本局金幣</span><strong>${game.gold}</strong></div>
+    <div class="item"><span>結算獎勵</span><strong>${victory ? `+${game.lastResultReward || 0}` : "0"}</strong></div>
+  `;
+  resultUi.nextBtn.disabled = !victory || !nextStageId || !nextUnlocked;
+  resultUi.nextBtn.textContent = !victory ? "下一關（需通關）" : nextStageId ? "下一關" : "已是最後一關";
+  resultUi.overlay.classList.remove("is-hidden");
+}
+
+function reloadToStage(stageId) {
+  const stage = stageCatalog[stageId];
+  if (!stage) return;
+  const next = new URL(window.location.href);
+  next.searchParams.set("map", stage.mapId);
+  next.searchParams.set("stage", stageId);
+  next.searchParams.set("slot", game.currentSaveSlot);
+  window.location.href = next.toString();
+}
+
+function setMenuPanel(panelKey) {
+  activeMenuPanel = panelKey;
+  if (panelKey !== "codex") closeCodexDetail();
+  const panelMap = {
+    home: menu.panelHome,
+    stages: menu.panelStages,
+    codex: menu.panelCodex,
+    settings: menu.panelSettings
+  };
+  const navMap = {
+    home: menu.navHomeBtn,
+    stages: menu.navStagesBtn,
+    codex: menu.navCodexBtn,
+    settings: menu.navSettingsBtn
+  };
+  for (const [key, panelEl] of Object.entries(panelMap)) {
+    panelEl?.classList.toggle("is-active", key === panelKey);
+  }
+  for (const [key, btnEl] of Object.entries(navMap)) {
+    btnEl?.classList.toggle("is-active", key === panelKey);
+  }
+}
+
+function renderMenuMapTabs() {
+  if (!menu.mapTabs) return;
+  menu.mapTabs.innerHTML = "";
+  for (const [mapId, mapInfo] of Object.entries(mapCatalog)) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `menu-map-tab${mapId === pendingMapId ? " is-active" : ""}`;
+    btn.dataset.mapId = mapId;
+    btn.textContent = mapInfo.name ?? mapId;
+    menu.mapTabs.append(btn);
+  }
+}
+
+function renderMenuStageCards() {
+  if (!menu.stageCards) return;
+  const stages = stageEntriesForMap(pendingMapId);
+  menu.stageCards.innerHTML = "";
+  for (const stage of stages) {
+    const isLocked = !unlockedStages.has(stage.id) && !stage.id.startsWith("endless");
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = `menu-stage-card${stage.id === pendingStageId ? " is-selected" : ""}${isLocked ? " is-locked" : ""}`;
+    card.dataset.stageId = stage.id;
+    if (isLocked) card.dataset.locked = "1";
+    const mapName = mapCatalog[stage.mapId]?.name ?? stage.mapId;
+    const { modeLabel, waveLabel, bossLabel } = stageMetaSummary(stage);
+    const stars = stage.id.startsWith("endless")
+      ? `最佳波次 ${bestScores.endlessWave ?? 0} / 擊殺 ${bestScores.endlessKills ?? 0}`
+      : starsText(stage.id);
+    const preview = mapPreviewSrc(stage.mapId);
+    card.innerHTML = `
+      <span class="thumb"><img src="${preview}" alt="${mapName} 縮圖" /></span>
+      <span class="body">
+        <span class="title">${stage.label}</span>
+        <span class="meta">${mapName}</span>
+        <span class="tag-row">
+          <span class="tag">${modeLabel}</span>
+          <span class="tag">${waveLabel}</span>
+          <span class="tag">${bossLabel}</span>
+          ${isLocked ? '<span class="tag">未解鎖</span>' : ""}
+        </span>
+        <span class="stars">${stars}</span>
+      </span>
+    `;
+    menu.stageCards.append(card);
+  }
+}
+
+function repopulateStageSelectors(mapId) {
+  fillStageOptions(hud.stageSelect, mapId);
+  fillStageOptions(menu.stageSelect, mapId);
+  syncSelectorValues();
+  renderMenuMapTabs();
+  renderMenuStageCards();
+  updatePendingLabels();
+}
+
+function populateMapStageSelectors() {
+  fillMapOptions(hud.mapSelect);
+  fillMapOptions(menu.mapSelect);
+  repopulateStageSelectors(pendingMapId);
+}
+
+function openMainMenu() {
+  game.inMainMenu = true;
+  game.paused = true;
+  hideResultOverlay();
+  menu.overlay?.classList.remove("is-hidden");
+  setMenuPanel(activeMenuPanel);
+  syncSelectorValues();
+  updatePendingLabels();
+  syncMenuSettingsUi();
+  updateHud();
+}
+
+function closeMainMenu() {
+  game.inMainMenu = false;
+  game.paused = false;
+  closeCodexDetail();
+  menu.overlay?.classList.add("is-hidden");
+  hideResultOverlay();
+  updateHud();
+}
+
+function applyPendingStageSelection() {
+  ensureAudio();
+  if (!isStageUnlocked(pendingStageId)) {
+    setMenuPanel("stages");
+    setMessage("此關卡尚未解鎖，請先通關前一關。");
+    return;
+  }
+  if (pendingMapId !== game.mapId || pendingStageId !== game.stageId) {
+    const next = new URL(window.location.href);
+    next.searchParams.set("map", pendingMapId);
+    next.searchParams.set("stage", pendingStageId);
+    next.searchParams.set("slot", game.currentSaveSlot);
+    window.location.href = next.toString();
+    return;
+  }
+  closeMainMenu();
+  setMessage(`已進入 ${game.stageLabel}，點擊「開始/下一波」開始防守。`);
+}
+
+populateMapStageSelectors();
+setMenuPanel("home");
+renderCodexLists();
+syncMenuSettingsUi();
+
+bindInputHandlers({
+  canvas,
+  hud,
+  menu,
+  onCanvasClick: (event) => {
+    if (game.inMainMenu) return;
+    ensureAudio();
+    const { cellX, cellY } = gridFromMouse(event);
+    const existing = game.towers.find((t) => t.cellX === cellX && t.cellY === cellY);
+    if (existing) {
+      if (event.shiftKey || event.altKey) {
+        upgradeTowerBranch(existing, event.altKey ? "B" : "A");
+        return;
+      }
+      upgradeTower(existing);
+      return;
+    }
+    placeTower(cellX, cellY);
+  },
+  onStartWave: startNextWave,
+  onTogglePause: () => {
+    if (game.inMainMenu) {
+      closeMainMenu();
+      setMessage(`已進入 ${game.stageLabel}，點擊「開始/下一波」開始防守。`);
+      return;
+    }
+    ensureAudio();
+    game.paused = !game.paused;
+    updateHud();
+  },
+  onToggleSpeed: () => {
+    ensureAudio();
+    game.timeScale = game.timeScale === 1 ? 2 : 1;
+    updateHud();
+  },
+  onSelectTowerType: (towerType) => {
+    markTowerSeen(towerType);
+    setSelectedTowerType(towerType);
+  },
+  onToggleMute: () => {
+    ensureAudio();
+    game.audioMuted = !game.audioMuted;
+    applyAudioVolumes();
+    persistSettings();
+    updateHud();
+    syncMenuSettingsUi();
+  },
+  onBgmVolumeInput: () => {
+    game.bgmVolume = Number(hud.bgmVolume.value) / 100;
+    applyAudioVolumes();
+    persistSettings();
+    updateHud();
+    syncMenuSettingsUi();
+  },
+  onSfxVolumeInput: () => {
+    game.sfxVolume = Number(hud.sfxVolume.value) / 100;
+    applyAudioVolumes();
+    persistSettings();
+    updateHud();
+    syncMenuSettingsUi();
+  },
+  onMapChange: () => {
+    pendingMapId = hud.mapSelect.value;
+    repopulateStageSelectors(pendingMapId);
+  },
+  onStageChange: () => {
+    pendingStageId = hud.stageSelect.value;
+    const selectedStage = stageCatalog[pendingStageId];
+    if (selectedStage) {
+      pendingMapId = selectedStage.mapId;
+    }
+    repopulateStageSelectors(pendingMapId);
+  },
+  onApplyStage: () => {
+    const next = new URL(window.location.href);
+    next.searchParams.set("map", pendingMapId);
+    next.searchParams.set("stage", pendingStageId);
+    next.searchParams.set("slot", game.currentSaveSlot);
+    window.location.href = next.toString();
+  },
+  onMenuMapChange: () => {
+    pendingMapId = menu.mapSelect.value;
+    repopulateStageSelectors(pendingMapId);
+  },
+  onMenuStageChange: () => {
+    pendingStageId = menu.stageSelect.value;
+    const selectedStage = stageCatalog[pendingStageId];
+    if (selectedStage) pendingMapId = selectedStage.mapId;
+    repopulateStageSelectors(pendingMapId);
+  },
+  onMenuStart: () => {
+    applyPendingStageSelection();
+  },
+  onMenuClose: () => {
+    closeMainMenu();
+    setMessage(`已進入 ${game.stageLabel}，點擊「開始/下一波」開始防守。`);
+  }
+});
+
+menu.navHomeBtn?.addEventListener("click", () => setMenuPanel("home"));
+menu.navStagesBtn?.addEventListener("click", () => setMenuPanel("stages"));
+menu.navCodexBtn?.addEventListener("click", () => setMenuPanel("codex"));
+menu.navSettingsBtn?.addEventListener("click", () => setMenuPanel("settings"));
+menu.goStagesBtn?.addEventListener("click", () => setMenuPanel("stages"));
+menu.backHomeBtn?.addEventListener("click", () => setMenuPanel("home"));
+menu.codexToStagesBtn?.addEventListener("click", () => setMenuPanel("stages"));
+menu.settingsToStagesBtn?.addEventListener("click", () => setMenuPanel("stages"));
+menu.codexCloseBtn?.addEventListener("click", () => {
+  closeMainMenu();
+  setMessage(`已進入 ${game.stageLabel}，點擊「開始/下一波」開始防守。`);
+});
+menu.settingsCloseBtn?.addEventListener("click", () => {
+  closeMainMenu();
+  setMessage(`已進入 ${game.stageLabel}，點擊「開始/下一波」開始防守。`);
+});
+menu.stageStartBtn?.addEventListener("click", () => applyPendingStageSelection());
+menu.mapTabs?.addEventListener("click", (event) => {
+  const btn = event.target.closest("button[data-map-id]");
+  if (!btn) return;
+  pendingMapId = btn.dataset.mapId;
+  repopulateStageSelectors(pendingMapId);
+  setMenuPanel("stages");
+});
+menu.stageCards?.addEventListener("click", (event) => {
+  const card = event.target.closest("button[data-stage-id]");
+  if (!card) return;
+  if (card.dataset.locked === "1") {
+    setMessage("此關卡尚未解鎖，請先通關前一關。");
+    return;
+  }
+  pendingStageId = card.dataset.stageId;
+  const selectedStage = stageCatalog[pendingStageId];
+  if (selectedStage) pendingMapId = selectedStage.mapId;
+  repopulateStageSelectors(pendingMapId);
+  setMenuPanel("stages");
+});
+menu.detailCloseBtn?.addEventListener("click", closeCodexDetail);
+menu.codexDetailOverlay?.addEventListener("click", (event) => {
+  if (event.target === menu.codexDetailOverlay) closeCodexDetail();
+});
+menu.muteBtn?.addEventListener("click", () => {
+  ensureAudio();
+  game.audioMuted = !game.audioMuted;
+  applyAudioVolumes();
+  persistSettings();
+  updateHud();
+  syncMenuSettingsUi();
+});
+menu.bgmVolume?.addEventListener("input", () => {
+  game.bgmVolume = Number(menu.bgmVolume.value) / 100;
+  applyAudioVolumes();
+  persistSettings();
+  updateHud();
+  syncMenuSettingsUi();
+});
+menu.sfxVolume?.addEventListener("input", () => {
+  game.sfxVolume = Number(menu.sfxVolume.value) / 100;
+  applyAudioVolumes();
+  persistSettings();
+  updateHud();
+  syncMenuSettingsUi();
+});
+menu.showDamageText?.addEventListener("change", () => {
+  game.displaySettings.showDamageText = Boolean(menu.showDamageText.checked);
+  persistSettings();
+  syncMenuSettingsUi();
+});
+menu.fxDensity?.addEventListener("change", () => {
+  game.displaySettings.fxDensity = menu.fxDensity.value;
+  persistSettings();
+  syncMenuSettingsUi();
+});
+menu.codexSearch?.addEventListener("input", () => {
+  codexFilters.search = menu.codexSearch.value ?? "";
+  renderCodexLists();
+});
+menu.codexTypeFilter?.addEventListener("change", () => {
+  codexFilters.type = menu.codexTypeFilter.value;
+  renderCodexLists();
+});
+menu.codexSizeFilter?.addEventListener("change", () => {
+  codexFilters.size = menu.codexSizeFilter.value;
+  renderCodexLists();
+});
+menu.codexSkillFilter?.addEventListener("change", () => {
+  codexFilters.skill = menu.codexSkillFilter.value;
+  renderCodexLists();
+});
+resultUi.retryBtn?.addEventListener("click", () => reloadToStage(game.stageId));
+resultUi.menuBtn?.addEventListener("click", () => {
+  hideResultOverlay();
+  openMainMenu();
+  setMenuPanel("stages");
+});
+resultUi.nextBtn?.addEventListener("click", () => {
+  const nextStageId = getNextPlayableStageId(game.stageId);
+  if (nextStageId && isStageUnlocked(nextStageId)) reloadToStage(nextStageId);
+});
+function selectedSlotValue() {
+  return ["1", "2", "3"].includes(menu.saveSlot?.value) ? menu.saveSlot.value : game.currentSaveSlot;
+}
+
+function syncSlotSelectors(slot) {
+  if (menu.saveSlot) menu.saveSlot.value = slot;
+  if (menu.saveSlotMirror) menu.saveSlotMirror.value = slot;
+}
+
+menu.saveSlot?.addEventListener("change", () => syncSlotSelectors(menu.saveSlot.value));
+menu.saveSlotMirror?.addEventListener("change", () => syncSlotSelectors(menu.saveSlotMirror.value));
+menu.applySlotBtn?.addEventListener("click", () => {
+  const slot = selectedSlotValue();
+  const next = new URL(window.location.href);
+  next.searchParams.set("slot", slot);
+  next.searchParams.set("map", pendingMapId);
+  next.searchParams.set("stage", pendingStageId);
+  window.location.href = next.toString();
+});
+menu.resetSlotBtn?.addEventListener("click", async () => {
+  const slot = selectedSlotValue();
+  const progressKey = `fish-td-v2-progress-slot${slot}`;
+  writePersistentSave(progressKey, {
+    stars: {},
+    unlockedStages: ["endless_default", "stage_shallow_intro"],
+    bestScores: {},
+    seenFish: [],
+    seenTowers: []
+  });
+  setMessage(`已清除存檔槽 ${slot} 的進度。`);
+  if (slot === game.currentSaveSlot) {
+    const next = new URL(window.location.href);
+    next.searchParams.set("slot", slot);
+    window.location.href = next.toString();
+  }
+});
+
+const { drawBackground, drawTowers, drawFish, drawBullets, drawParticles, drawOverlay } = createRenderer({
+  ctx,
+  canvas,
+  game,
+  GRID,
+  pathPoints,
+  pathCellSet,
+  towerCatalog
+});
+
+let lastTs = performance.now();
+function loop(ts) {
+  const rawDt = Math.min(0.05, (ts - lastTs) / 1000);
+  lastTs = ts;
+
+  updateBgmScheduler();
+
+  if (!game.inMainMenu && !game.paused && game.lives > 0) {
+    const dt = rawDt * game.timeScale;
+    updateSpawning(dt);
+    updateTowers(dt);
+    updateBullets(dt);
+    updateFishes(dt);
+    updateParticles(dt);
+    awardStageStarsIfNeeded();
+    if (game.stageCleared && !game.resultShown) {
+      game.resultShown = true;
+      openResultOverlay({ victory: true });
+    }
+    updateHud();
+  }
+
+  if (game.stageId.startsWith("endless")) {
+    const waveBest = bestScores.endlessWave ?? 0;
+    const killsBest = bestScores.endlessKills ?? 0;
+    if (game.wave > waveBest || game.kills > killsBest) {
+      bestScores.endlessWave = Math.max(waveBest, game.wave);
+      bestScores.endlessKills = Math.max(killsBest, game.kills);
+      persistProgress();
+    }
+  }
+
+  if (game.lives <= 0 && !game.gameOverSfxPlayed) {
+    playSfx("gameOver");
+    game.gameOverSfxPlayed = true;
+  }
+  if (game.lives <= 0 && !game.resultShown) {
+    game.resultShown = true;
+    openResultOverlay({ victory: false });
+  }
+
+  drawBackground();
+  drawTowers();
+  for (const fish of game.fishes) drawFish(fish);
+  drawBullets();
+  drawParticles();
+  drawOverlay();
+
+  requestAnimationFrame(loop);
+}
+
+updateHud();
+updateAudioHud();
+openMainMenu();
+setMessage("請先在主畫面選擇地圖與關卡，再開始遊戲。");
+requestAnimationFrame(loop);
+
+(async () => {
+  const [nativeSettings, nativeProgress] = await Promise.all([
+    readPersistentSave(STORAGE_KEYS.settings),
+    readPersistentSave(STORAGE_KEYS.progress)
+  ]);
+
+  if (nativeSettings && Object.keys(nativeSettings).length) {
+    game.audioMuted = Boolean(nativeSettings.audioMuted ?? game.audioMuted);
+    game.bgmVolume = Number(nativeSettings.bgmVolume ?? game.bgmVolume);
+    game.sfxVolume = Number(nativeSettings.sfxVolume ?? game.sfxVolume);
+    game.displaySettings.showDamageText = nativeSettings.showDamageText ?? game.displaySettings.showDamageText;
+    game.displaySettings.fxDensity = nativeSettings.fxDensity ?? game.displaySettings.fxDensity;
+    if (hud.bgmVolume) hud.bgmVolume.value = String(Math.round(game.bgmVolume * 100));
+    if (hud.sfxVolume) hud.sfxVolume.value = String(Math.round(game.sfxVolume * 100));
+    applyAudioVolumes();
+    syncMenuSettingsUi();
+    updateHud();
+  }
+
+  if (nativeProgress && Object.keys(nativeProgress).length) {
+    for (const [k, v] of Object.entries(nativeProgress.stars ?? {})) stageStarProgress[k] = v;
+    for (const stageId of nativeProgress.unlockedStages ?? []) unlockedStages.add(stageId);
+    Object.assign(bestScores, nativeProgress.bestScores ?? {});
+    for (const fishId of nativeProgress.seenFish ?? []) seenFish.add(fishId);
+    for (const towerId of nativeProgress.seenTowers ?? []) seenTowers.add(towerId);
+    renderMenuStageCards();
+    renderCodexLists();
+    updatePendingLabels();
+  }
+})();

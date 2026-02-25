@@ -1,0 +1,29 @@
+{
+  "id": "stage_coral_gauntlet",
+  "label": "珊瑚迷宮 2-1",
+  "mode": "stage",
+  "maxWaves": 10,
+  "spawnTiming": {
+    "normalBase": 0.42,
+    "normalJitter": 0.2,
+    "bossFixed": 1.1
+  },
+  "bossWave": {
+    "interval": 5,
+    "bossKind": "bossWhaleKing",
+    "spawnLast": true,
+    "extraRules": [
+      { "kind": "sharkLarge", "count": { "base": 2 } },
+      { "kind": "swordfish", "count": { "base": 4 } },
+      { "kind": "puffer", "count": { "base": 2 } }
+    ]
+  },
+  "rules": [
+    { "kind": "tunaSmall", "unlockWave": 1, "count": { "base": 5, "terms": [{ "type": "mul", "value": "wave", "factor": 1 }] } },
+    { "kind": "puffer", "unlockWave": 1, "count": { "base": 2, "terms": [{ "type": "floorDiv", "value": "wave", "divisor": 2 }] } },
+    { "kind": "tunaMedium", "unlockWave": 2, "count": { "base": 3, "terms": [{ "type": "mul", "value": "wave", "factor": 1 }] } },
+    { "kind": "sharkSmall", "unlockWave": 2, "count": { "base": 2, "terms": [{ "type": "floorDiv", "value": "wave", "divisor": 2 }] } },
+    { "kind": "swordfish", "unlockWave": 3, "count": { "base": 2, "terms": [{ "type": "mul", "value": "wave", "factor": 1 }] } },
+    { "kind": "sharkLarge", "unlockWave": 5, "count": { "base": 1, "terms": [{ "type": "floorDiv", "value": "wave", "divisor": 3 }] } }
+  ]
+}

@@ -1,0 +1,172 @@
+{
+  "sharkSmall": {
+    "label": "小鯊魚",
+    "species": "鯊魚",
+    "sizeClass": "small",
+    "color": "#7fb0ff",
+    "hp": 46,
+    "speed": 68,
+    "reward": 12,
+    "damage": 1,
+    "radius": 14,
+    "skills": [
+      {
+        "type": "accelerate_on_hp",
+        "triggerHpRatio": 0.55,
+        "multiplier": 1.45
+      }
+    ]
+  },
+  "sharkLarge": {
+    "label": "大鯊魚",
+    "species": "鯊魚",
+    "sizeClass": "large",
+    "color": "#5f88df",
+    "hp": 165,
+    "speed": 42,
+    "reward": 34,
+    "damage": 2,
+    "radius": 26,
+    "skills": [
+      {
+        "type": "armor_static",
+        "armorRatio": 0.7
+      }
+    ]
+  },
+  "whale": {
+    "label": "鯨魚",
+    "species": "鯨魚",
+    "sizeClass": "large",
+    "color": "#8f78ff",
+    "hp": 240,
+    "speed": 34,
+    "reward": 50,
+    "damage": 3,
+    "radius": 30,
+    "skills": [
+      {
+        "type": "split_on_death",
+        "count": 2,
+        "into": "tunaMedium",
+        "hpScale": 0.9
+      }
+    ]
+  },
+  "tunaSmall": {
+    "label": "小鮪魚",
+    "species": "鮪魚",
+    "sizeClass": "small",
+    "color": "#4ce0d7",
+    "hp": 34,
+    "speed": 86,
+    "reward": 10,
+    "damage": 1,
+    "radius": 12,
+    "skills": [
+      {
+        "type": "accelerate_on_hp",
+        "triggerHpRatio": 0.4,
+        "multiplier": 1.65
+      }
+    ]
+  },
+  "tunaMedium": {
+    "label": "中鮪魚",
+    "species": "鮪魚",
+    "sizeClass": "medium",
+    "color": "#3ebbb4",
+    "hp": 62,
+    "speed": 74,
+    "reward": 16,
+    "damage": 1,
+    "radius": 18,
+    "skills": [
+      {
+        "type": "split_on_death",
+        "count": 2,
+        "into": "tunaSmall",
+        "hpScale": 0.8
+      }
+    ]
+  },
+  "puffer": {
+    "label": "河豚",
+    "species": "河豚",
+    "sizeClass": "small",
+    "color": "#ffd166",
+    "hp": 52,
+    "speed": 54,
+    "reward": 14,
+    "damage": 1,
+    "radius": 13,
+    "skills": [
+      {
+        "type": "armor_static",
+        "armorRatio": 0.6
+      }
+    ]
+  },
+  "swordfish": {
+    "label": "旗魚",
+    "species": "旗魚",
+    "sizeClass": "medium",
+    "color": "#ff9c75",
+    "hp": 88,
+    "speed": 95,
+    "reward": 20,
+    "damage": 1,
+    "radius": 17,
+    "skills": [
+      {
+        "type": "accelerate_on_hp",
+        "triggerHpRatio": 0.75,
+        "multiplier": 1.3
+      }
+    ]
+  },
+  "bossWhaleKing": {
+    "label": "深海鯨王",
+    "species": "魚王",
+    "sizeClass": "boss",
+    "color": "#b18fff",
+    "hp": 980,
+    "speed": 28,
+    "reward": 180,
+    "damage": 6,
+    "radius": 38,
+    "isBoss": true,
+    "skills": [
+      {
+        "type": "boss_summon_threshold",
+        "thresholds": [0.85, 0.6, 0.35],
+        "speedMultiplier": 1.08,
+        "packs": [
+          { "kind": "swordfish", "count": 2 },
+          { "kind": "tunaMedium", "count": 2 },
+          { "kind": "puffer", "count": 1 }
+        ]
+      },
+      {
+        "type": "boss_shield_threshold",
+        "thresholds": [0.72, 0.42],
+        "shieldRatio": 0.16
+      },
+      {
+        "type": "armor_static",
+        "armorRatio": 0.78
+      },
+      {
+        "type": "accelerate_on_hp",
+        "triggerHpRatio": 0.35,
+        "multiplier": 1.5
+      },
+      {
+        "type": "split_on_death",
+        "count": 3,
+        "into": "sharkSmall",
+        "hpScale": 1.05
+      }
+    ]
+  }
+}
