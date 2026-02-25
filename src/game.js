@@ -20,6 +20,114 @@ const STORAGE_KEYS = {
   settings: "fish-td-v2-settings"
 };
 
+const DEFAULT_SETTINGS = {
+  audioMuted: false,
+  bgmVolume: Number(hud.bgmVolume?.value ?? 45) / 100,
+  sfxVolume: Number(hud.sfxVolume?.value ?? 70) / 100,
+  showDamageText: true,
+  fxDensity: "中",
+  showTowerPanel: true
+};
+
+const DEFAULT_PROGRESS = {
+  stars: {},
+  unlockedStages: ["endless_default", "stage_shallow_intro"],
+  bestScores: {},
+  seenFish: [],
+  seenTowers: []
+};
+
+function createFatalErrorOverlay() {
+  const el = document.createElement("div");
+  el.id = "fatalErrorOverlay";
+  Object.assign(el.style, {
+    position: "fixed",
+    inset: "0",
+    zIndex: "100000",
+    display: "none",
+    placeItems: "center",
+    padding: "20px",
+    background: "rgba(2,12,18,0.92)",
+    color: "#e7fbff",
+    fontFamily: "\"Avenir Next\", \"PingFang TC\", sans-serif"
+  });
+  el.innerHTML = `
+    <div style="max-width:720px;width:100%;border:1px solid rgba(255,123,123,0.35);background:rgba(18,8,12,0.9);border-radius:14px;padding:16px;">
+      <div style="font-size:12px;color:#ffb0b0;letter-spacing:1px;margin-bottom:6px;">啟動 / 執行錯誤</div>
+      <div id="fatalErrorTitle" style="font-size:20px;font-weight:700;margin-bottom:8px;">遊戲發生錯誤</div>
+      <div id="fatalErrorMessage" style="font-size:13px;line-height:1.5;white-space:pre-wrap;word-break:break-word;color:#ffdfe1;"></div>
+    </div>
+  `;
+  document.addEventListener("DOMContentLoaded", () => document.body.append(el), { once: true });
+  if (document.body) document.body.append(el);
+  return el;
+}
+
+const fatalErrorOverlay = createFatalErrorOverlay();
+let fatalErrorShown = false;
+function showFatalError(error, context = "runtime") {
+  const message = String(error?.stack || error?.message || error || "unknown error");
+  console.error(`[fatal:${context}]`, error);
+  fatalErrorShown = true;
+  if (!fatalErrorOverlay) return;
+  fatalErrorOverlay.style.display = "grid";
+  const title = fatalErrorOverlay.querySelector("#fatalErrorTitle");
+  const body = fatalErrorOverlay.querySelector("#fatalErrorMessage");
+  if (title) title.textContent = context === "startup" ? "遊戲啟動失敗" : "遊戲執行中發生錯誤";
+  if (body) body.textContent = `${context}\n${message}`;
+}
+
+window.addEventListener("error", (event) => {
+  showFatalError(event.error || event.message || "Uncaught", "runtime");
+});
+window.addEventListener("unhandledrejection", (event) => {
+  showFatalError(event.reason || "Unhandled Promise Rejection", "runtime");
+});
+
+function clamp01(v, fallback) {
+  return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : fallback;
+}
+
+function sanitizeSettings(raw) {
+  const obj = raw && typeof raw === "object" ? raw : {};
+  return {
+    audioMuted: Boolean(obj.audioMuted ?? DEFAULT_SETTINGS.audioMuted),
+    bgmVolume: clamp01(Number(obj.bgmVolume), DEFAULT_SETTINGS.bgmVolume),
+    sfxVolume: clamp01(Number(obj.sfxVolume), DEFAULT_SETTINGS.sfxVolume),
+    showDamageText: obj.showDamageText !== false,
+    fxDensity: ["低", "中", "高"].includes(obj.fxDensity) ? obj.fxDensity : DEFAULT_SETTINGS.fxDensity,
+    showTowerPanel: obj.showTowerPanel !== false
+  };
+}
+
+function sanitizeProgress(raw) {
+  const obj = raw && typeof raw === "object" ? raw : {};
+  const stars = {};
+  for (const [k, v] of Object.entries(obj.stars ?? {})) {
+    const n = Number(v);
+    if (!Number.isFinite(n)) continue;
+    stars[k] = Math.max(0, Math.min(3, Math.floor(n)));
+  }
+  const unlockedStages = Array.isArray(obj.unlockedStages)
+    ? obj.unlockedStages.filter((id) => typeof id === "string" && stageCatalog[id])
+    : [];
+  if (!unlockedStages.includes("endless_default")) unlockedStages.unshift("endless_default");
+  if (!unlockedStages.includes("stage_shallow_intro")) unlockedStages.push("stage_shallow_intro");
+  const bestScores = {};
+  for (const [k, v] of Object.entries(obj.bestScores ?? {})) {
+    const n = Number(v);
+    if (Number.isFinite(n)) bestScores[k] = Math.max(0, Math.floor(n));
+  }
+  const uniqStrings = (arr) => [...new Set((Array.isArray(arr) ? arr : []).filter((x) => typeof x === "string"))];
+  return {
+    stars,
+    unlockedStages,
+    bestScores,
+    seenFish: uniqStrings(obj.seenFish),
+    seenTowers: uniqStrings(obj.seenTowers)
+  };
+}
+
 function loadJsonStorage(key, fallback) {
   try {
     const raw = window.localStorage.getItem(key);
@@ -57,21 +165,8 @@ function writePersistentSave(key, value) {
   } catch {}
 }
 
-const savedSettings = loadJsonStorage(STORAGE_KEYS.settings, {
-  audioMuted: false,
-  bgmVolume: Number(hud.bgmVolume?.value ?? 45) / 100,
-  sfxVolume: Number(hud.sfxVolume?.value ?? 70) / 100,
-  showDamageText: true,
-  fxDensity: "中",
-  showTowerPanel: true
-});
-const savedProgress = loadJsonStorage(STORAGE_KEYS.progress, {
-  stars: {},
-  unlockedStages: ["endless_default", "stage_shallow_intro"],
-  bestScores: {},
-  seenFish: [],
-  seenTowers: []
-});
+const savedSettings = sanitizeSettings(loadJsonStorage(STORAGE_KEYS.settings, DEFAULT_SETTINGS));
+const savedProgress = sanitizeProgress(loadJsonStorage(STORAGE_KEYS.progress, DEFAULT_PROGRESS));
 const requestedStageId = urlParams.get("stage") ?? defaultStageId;
 const requestedMapId = urlParams.get("map");
 const initialStage = stageCatalog[requestedStageId] ?? stageCatalog[defaultStageId];
@@ -1157,94 +1252,105 @@ const { drawBackground, drawTowers, drawFish, drawBullets, drawParticles, drawOv
 
 let lastTs = performance.now();
 function loop(ts) {
-  const rawDt = Math.min(0.05, (ts - lastTs) / 1000);
-  lastTs = ts;
+  try {
+    const rawDt = Math.min(0.05, (ts - lastTs) / 1000);
+    lastTs = ts;
 
-  updateBgmScheduler();
-  syncMenuStateFromDom();
+    updateBgmScheduler();
+    syncMenuStateFromDom();
 
-  if (!game.inMainMenu && !game.paused && game.lives > 0) {
-    const dt = rawDt * game.timeScale;
-    game.stats.maxWaveReached = Math.max(game.stats.maxWaveReached, game.wave);
-    updateSpawning(dt);
-    updateTowers(dt);
-    updateBullets(dt);
-    updateFishes(dt);
-    updateParticles(dt);
-    awardStageStarsIfNeeded();
-    if (game.stageCleared && !game.resultShown) {
+    if (!game.inMainMenu && !game.paused && game.lives > 0) {
+      const dt = rawDt * game.timeScale;
+      game.stats.maxWaveReached = Math.max(game.stats.maxWaveReached, game.wave);
+      updateSpawning(dt);
+      updateTowers(dt);
+      updateBullets(dt);
+      updateFishes(dt);
+      updateParticles(dt);
+      awardStageStarsIfNeeded();
+      if (game.stageCleared && !game.resultShown) {
+        game.resultShown = true;
+        openResultOverlay({ victory: true });
+      }
+      updateHud();
+    }
+
+    updateBossAlert(rawDt);
+
+    if (game.stageId.startsWith("endless")) {
+      const waveBest = bestScores.endlessWave ?? 0;
+      const killsBest = bestScores.endlessKills ?? 0;
+      if (game.wave > waveBest || game.kills > killsBest) {
+        bestScores.endlessWave = Math.max(waveBest, game.wave);
+        bestScores.endlessKills = Math.max(killsBest, game.kills);
+        persistProgress();
+      }
+    }
+
+    if (game.lives <= 0 && !game.gameOverSfxPlayed) {
+      playSfx("gameOver");
+      game.gameOverSfxPlayed = true;
+    }
+    if (game.lives <= 0 && !game.resultShown) {
       game.resultShown = true;
-      openResultOverlay({ victory: true });
+      openResultOverlay({ victory: false });
     }
-    updateHud();
+
+    drawBackground();
+    drawTowers();
+    for (const fish of game.fishes) drawFish(fish);
+    drawBullets();
+    drawParticles();
+    drawOverlay();
+
+    if (!fatalErrorShown) requestAnimationFrame(loop);
+  } catch (error) {
+    showFatalError(error, "runtime");
   }
-
-  updateBossAlert(rawDt);
-
-  if (game.stageId.startsWith("endless")) {
-    const waveBest = bestScores.endlessWave ?? 0;
-    const killsBest = bestScores.endlessKills ?? 0;
-    if (game.wave > waveBest || game.kills > killsBest) {
-      bestScores.endlessWave = Math.max(waveBest, game.wave);
-      bestScores.endlessKills = Math.max(killsBest, game.kills);
-      persistProgress();
-    }
-  }
-
-  if (game.lives <= 0 && !game.gameOverSfxPlayed) {
-    playSfx("gameOver");
-    game.gameOverSfxPlayed = true;
-  }
-  if (game.lives <= 0 && !game.resultShown) {
-    game.resultShown = true;
-    openResultOverlay({ victory: false });
-  }
-
-  drawBackground();
-  drawTowers();
-  for (const fish of game.fishes) drawFish(fish);
-  drawBullets();
-  drawParticles();
-  drawOverlay();
-
-  requestAnimationFrame(loop);
 }
 
-updateHud();
-updateAudioHud();
-openMainMenu();
-setMessage("請先在主畫面選擇地圖與關卡，再開始遊戲。");
-requestAnimationFrame(loop);
+try {
+  updateHud();
+  updateAudioHud();
+  openMainMenu();
+  setMessage("請先在主畫面選擇地圖與關卡，再開始遊戲。");
+  requestAnimationFrame(loop);
+} catch (error) {
+  showFatalError(error, "startup");
+}
 
 (async () => {
-  const [nativeSettings, nativeProgress] = await Promise.all([
-    readPersistentSave(STORAGE_KEYS.settings),
-    readPersistentSave(STORAGE_KEYS.progress)
-  ]);
+  try {
+    const [nativeSettingsRaw, nativeProgressRaw] = await Promise.all([
+      readPersistentSave(STORAGE_KEYS.settings),
+      readPersistentSave(STORAGE_KEYS.progress)
+    ]);
+    const nativeSettings = sanitizeSettings(nativeSettingsRaw);
+    const nativeProgress = sanitizeProgress(nativeProgressRaw);
 
-  if (nativeSettings && Object.keys(nativeSettings).length) {
-    game.audioMuted = Boolean(nativeSettings.audioMuted ?? game.audioMuted);
-    game.bgmVolume = Number(nativeSettings.bgmVolume ?? game.bgmVolume);
-    game.sfxVolume = Number(nativeSettings.sfxVolume ?? game.sfxVolume);
-    game.displaySettings.showDamageText = nativeSettings.showDamageText ?? game.displaySettings.showDamageText;
-    game.displaySettings.fxDensity = nativeSettings.fxDensity ?? game.displaySettings.fxDensity;
-    game.displaySettings.showTowerPanel = nativeSettings.showTowerPanel ?? game.displaySettings.showTowerPanel;
+    game.audioMuted = nativeSettings.audioMuted;
+    game.bgmVolume = nativeSettings.bgmVolume;
+    game.sfxVolume = nativeSettings.sfxVolume;
+    game.displaySettings.showDamageText = nativeSettings.showDamageText;
+    game.displaySettings.fxDensity = nativeSettings.fxDensity;
+    game.displaySettings.showTowerPanel = nativeSettings.showTowerPanel;
     if (hud.bgmVolume) hud.bgmVolume.value = String(Math.round(game.bgmVolume * 100));
     if (hud.sfxVolume) hud.sfxVolume.value = String(Math.round(game.sfxVolume * 100));
     applyAudioVolumes();
     syncMenuSettingsUi();
     refreshTowerInfoPanel();
     updateHud();
-  }
 
-  if (nativeProgress && Object.keys(nativeProgress).length) {
-    for (const [k, v] of Object.entries(nativeProgress.stars ?? {})) stageStarProgress[k] = v;
-    for (const stageId of nativeProgress.unlockedStages ?? []) unlockedStages.add(stageId);
-    Object.assign(bestScores, nativeProgress.bestScores ?? {});
-    for (const fishId of nativeProgress.seenFish ?? []) seenFish.add(fishId);
-    for (const towerId of nativeProgress.seenTowers ?? []) seenTowers.add(towerId);
+    for (const [k, v] of Object.entries(nativeProgress.stars)) stageStarProgress[k] = v;
+    for (const stageId of nativeProgress.unlockedStages) unlockedStages.add(stageId);
+    Object.assign(bestScores, nativeProgress.bestScores);
+    for (const fishId of nativeProgress.seenFish) seenFish.add(fishId);
+    for (const towerId of nativeProgress.seenTowers) seenTowers.add(towerId);
     renderMenuStageCards();
     renderCodexLists();
     updatePendingLabels();
+  } catch (error) {
+    console.warn("[save] hydrate failed, using in-memory defaults:", error);
+    setMessage("存檔讀取失敗，已使用預設設定。");
   }
 })();
