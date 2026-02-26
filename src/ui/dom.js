@@ -80,6 +80,7 @@ export const menu = {
   sfxVolumeValue: document.getElementById("menuSfxVolumeValue"),
   showDamageText: document.getElementById("menuShowDamageText"),
   fxDensity: document.getElementById("menuFxDensity"),
+  spriteQuality: document.getElementById("menuSpriteQuality"),
   showTowerPanel: document.getElementById("menuShowTowerPanel"),
   resetSettingsBtn: document.getElementById("menuResetSettingsBtn"),
   codexSearch: document.getElementById("menuCodexSearch"),

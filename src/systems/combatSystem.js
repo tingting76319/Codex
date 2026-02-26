@@ -45,13 +45,20 @@ function updateTowers(dt) {
         fireRateMult: 1,
         rangeBonus: 0,
         critBonus: 0,
-        armorBreakBonus: 0
+        armorBreakBonus: 0,
+        sources: []
       };
       current.damageMult *= supportTower.supportAura.damageMult ?? 1;
       current.fireRateMult *= supportTower.supportAura.fireRateMult ?? 1;
       current.rangeBonus += supportTower.supportAura.rangeBonus ?? 0;
       current.critBonus += supportTower.supportAura.critBonus ?? 0;
       current.armorBreakBonus += supportTower.supportAura.armorBreakBonus ?? 0;
+      current.sources.push({
+        id: supportTower.id,
+        label: supportTower.typeLabel ?? "支援塔",
+        cellX: supportTower.cellX,
+        cellY: supportTower.cellY
+      });
       current.damageMult = Math.min(current.damageMult, 1.45);
       current.fireRateMult = Math.max(current.fireRateMult, 0.6);
       current.rangeBonus = Math.min(current.rangeBonus, 44);
@@ -64,7 +71,15 @@ function updateTowers(dt) {
   for (const tower of game.towers) {
     if (tower.typeKey === "support") continue;
     const buff = supportBuffs.get(tower.id);
-    tower.activeSupportBuff = buff ? { ...buff } : null;
+    tower.activeSupportBuff = buff ? {
+      damageMult: buff.damageMult,
+      fireRateMult: buff.fireRateMult,
+      rangeBonus: buff.rangeBonus,
+      critBonus: buff.critBonus,
+      armorBreakBonus: buff.armorBreakBonus
+    } : null;
+    tower.activeSupportSources = buff?.sources?.map((s) => ({ ...s })) ?? [];
+    tower.activeSupportSourceLabels = buff?.sources?.map((s) => `${s.label}(${(s.cellX ?? 0) + 1},${(s.cellY ?? 0) + 1})`) ?? [];
     tower.cooldown -= dt;
     if (tower.cooldown > 0) continue;
     const effectiveRange = tower.range + (buff?.rangeBonus ?? 0);
@@ -130,6 +145,8 @@ function updateTowers(dt) {
   for (const tower of game.towers) {
     if (tower.typeKey === "support") {
       tower.activeSupportBuff = null;
+      tower.activeSupportSources = [];
+      tower.activeSupportSourceLabels = [];
     }
   }
 }
@@ -237,6 +254,15 @@ function applyBurnToFish(fish, burn) {
     }
   }
   burst(boss.x, boss.y, "#ffd166");
+  game.particles.push({
+    x: boss.x,
+    y: boss.y,
+    vx: 0,
+    vy: 0,
+    life: 0.45,
+    color: "rgba(255,209,102,0.9)",
+    ringRadius: (boss.radius ?? 30) + 20
+  });
     setMessage("深海鯨王召喚魚群增援！");
     playSfx("bossSummon");
     showBossAlert?.("Boss 召喚魚群增援", { badge: "召喚", duration: 2.2 });
@@ -253,6 +279,15 @@ function triggerBossSkillsOnHpThresholds(fish) {
     fish.bossShieldThresholds.shift();
     fish.bossShieldHp += fish.maxHp * (fish.bossShieldRatio ?? 0.16);
     burst(fish.x, fish.y, "#7de9ff");
+    game.particles.push({
+      x: fish.x,
+      y: fish.y,
+      vx: 0,
+      vy: 0,
+      life: 0.6,
+      color: "rgba(125,233,255,0.95)",
+      ringRadius: (fish.radius ?? 30) + 28
+    });
     setMessage("深海鯨王展開護盾階段！");
     playSfx("bossShield");
     showBossAlert?.("Boss 進入護盾階段", { badge: "護盾", duration: 2.4 });

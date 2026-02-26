@@ -25,6 +25,7 @@ function getFishSprite(species, fish = null) {
 }
 
 function drawFishSpriteIfAvailable(fish) {
+  if ((game.displaySettings?.spriteQuality ?? "高") === "低") return false;
   const img = getFishSprite(fish.species, fish);
   if (!img || !img.complete || !img.naturalWidth) return false;
   const isOarfish = fish.species === "皇帶魚";
@@ -613,6 +614,16 @@ function drawFish(fish) {
   ctx.fillStyle = hpRatio > 0.45 ? "#54e6a6" : hpRatio > 0.2 ? "#ffd166" : "#ff7b7b";
   ctx.fillRect(fish.x - fish.radius, fish.y - fish.radius - 13, fish.radius * 2 * hpRatio, 4);
   if (fish.isBoss) {
+    if (fish.bossShieldHp > 0) {
+      const shieldPulse = 0.65 + 0.35 * (0.5 + 0.5 * Math.sin(performance.now() * 0.014));
+      ctx.strokeStyle = `rgba(125, 233, 255, ${0.35 + shieldPulse * 0.25})`;
+      ctx.lineWidth = 2.2;
+      ctx.setLineDash([7, 5]);
+      ctx.beginPath();
+      ctx.arc(fish.x, fish.y, fish.radius + 8 + shieldPulse * 4, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
     ctx.fillStyle = "rgba(255, 209, 102, 0.95)";
     ctx.font = "bold 11px sans-serif";
     ctx.textAlign = "center";

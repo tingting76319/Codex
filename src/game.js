@@ -26,6 +26,7 @@ const DEFAULT_SETTINGS = {
   sfxVolume: Number(hud.sfxVolume?.value ?? 70) / 100,
   showDamageText: true,
   fxDensity: "中",
+  spriteQuality: "高",
   showTowerPanel: true
 };
 
@@ -96,6 +97,7 @@ function sanitizeSettings(raw) {
     sfxVolume: clamp01(Number(obj.sfxVolume), DEFAULT_SETTINGS.sfxVolume),
     showDamageText: obj.showDamageText !== false,
     fxDensity: ["低", "中", "高"].includes(obj.fxDensity) ? obj.fxDensity : DEFAULT_SETTINGS.fxDensity,
+    spriteQuality: ["低", "高"].includes(obj.spriteQuality) ? obj.spriteQuality : DEFAULT_SETTINGS.spriteQuality,
     showTowerPanel: obj.showTowerPanel !== false
   };
 }
@@ -223,6 +225,7 @@ const game = {
   displaySettings: {
     showDamageText: savedSettings.showDamageText !== false,
     fxDensity: ["低", "中", "高"].includes(savedSettings.fxDensity) ? savedSettings.fxDensity : "中",
+    spriteQuality: ["低", "高"].includes(savedSettings.spriteQuality) ? savedSettings.spriteQuality : "高",
     showTowerPanel: savedSettings.showTowerPanel !== false
   }
 };
@@ -567,6 +570,11 @@ function describeActiveSupportBuff(buff) {
   return parts.length ? parts.join("｜") : "未受支援塔增益";
 }
 
+function describeSupportSources(tower) {
+  if (!tower?.activeSupportSourceLabels?.length) return "無";
+  return tower.activeSupportSourceLabels.join("、");
+}
+
 function estimateTowerUpgradePreview(tower) {
   if (!tower || tower.level >= 4) return "已滿級";
   if (tower.typeKey === "support") {
@@ -604,6 +612,16 @@ function towerDpsSummary(tower) {
   const buffedFireRate = Math.max(0.08, tower.fireRate * (buff.fireRateMult ?? 1));
   const buffedDps = buffedFireRate > 0 ? buffedDamage / buffedFireRate : buffedDamage;
   return `${Math.round(baseDps)} → ${Math.round(buffedDps)} (支援中)`;
+}
+
+function supportCoverageSummary(tower, allTowers) {
+  if (tower?.typeKey !== "support") return "";
+  const radius = tower.supportAura?.radius ?? 0;
+  const covered = (allTowers ?? []).filter((t) => t.id !== tower.id && t.typeKey !== "support").filter((t) => {
+    const d = Math.hypot((t.x ?? 0) - (tower.x ?? 0), (t.y ?? 0) - (tower.y ?? 0));
+    return d <= radius;
+  });
+  return `${covered.length} 座塔台在光環範圍內`;
 }
 
 function getStagesContainingFish(targetFishId) {
@@ -721,8 +739,10 @@ function refreshTowerInfoPanel() {
     if (tower.supportAura) {
       rows.push(["增益光環", `半徑 ${Math.round(tower.supportAura.radius)}｜傷害 x${(tower.supportAura.damageMult ?? 1).toFixed(2)}`]);
       rows.push(["輔助效果", `攻速 x${(tower.supportAura.fireRateMult ?? 1).toFixed(2)}｜射程 +${Math.round(tower.supportAura.rangeBonus ?? 0)}`]);
+      rows.push(["覆蓋狀態", supportCoverageSummary(tower, game.towers)]);
     } else {
       rows.push(["支援加成", describeActiveSupportBuff(tower.activeSupportBuff)]);
+      rows.push(["支援來源", describeSupportSources(tower)]);
     }
     if (tower.armorBreak) rows.push(["破甲", `${Math.round((tower.armorBreak.amount ?? 0) * 100)}%`]);
     if (tower.burn) rows.push(["灼燒", `${Math.round(tower.burn.dps ?? 0)} DPS`]);
@@ -859,6 +879,7 @@ function syncMenuSettingsUi() {
   if (menu.muteState) menu.muteState.textContent = game.audioMuted ? "關" : "開";
   if (menu.showDamageText) menu.showDamageText.checked = game.displaySettings.showDamageText;
   if (menu.fxDensity) menu.fxDensity.value = game.displaySettings.fxDensity;
+  if (menu.spriteQuality) menu.spriteQuality.value = game.displaySettings.spriteQuality;
   if (menu.showTowerPanel) menu.showTowerPanel.checked = game.displaySettings.showTowerPanel;
   if (menu.saveSlot) menu.saveSlot.value = game.currentSaveSlot;
   if (menu.saveSlotMirror) menu.saveSlotMirror.value = game.currentSaveSlot;
@@ -871,6 +892,7 @@ function persistSettings() {
     sfxVolume: game.sfxVolume,
     showDamageText: game.displaySettings.showDamageText,
     fxDensity: game.displaySettings.fxDensity,
+    spriteQuality: game.displaySettings.spriteQuality,
     showTowerPanel: game.displaySettings.showTowerPanel
   });
 }
@@ -1564,6 +1586,11 @@ menu.fxDensity?.addEventListener("change", () => {
   persistSettings();
   syncMenuSettingsUi();
 });
+menu.spriteQuality?.addEventListener("change", () => {
+  game.displaySettings.spriteQuality = menu.spriteQuality.value;
+  persistSettings();
+  syncMenuSettingsUi();
+});
 menu.showTowerPanel?.addEventListener("change", () => {
   game.displaySettings.showTowerPanel = Boolean(menu.showTowerPanel.checked);
   persistSettings();
@@ -1576,6 +1603,7 @@ menu.resetSettingsBtn?.addEventListener("click", () => {
   game.sfxVolume = 0.7;
   game.displaySettings.showDamageText = true;
   game.displaySettings.fxDensity = "中";
+  game.displaySettings.spriteQuality = "高";
   game.displaySettings.showTowerPanel = true;
   if (hud.bgmVolume) hud.bgmVolume.value = "45";
   if (hud.sfxVolume) hud.sfxVolume.value = "70";
@@ -1748,6 +1776,7 @@ try {
     game.sfxVolume = nativeSettings.sfxVolume;
     game.displaySettings.showDamageText = nativeSettings.showDamageText;
     game.displaySettings.fxDensity = nativeSettings.fxDensity;
+    game.displaySettings.spriteQuality = nativeSettings.spriteQuality;
     game.displaySettings.showTowerPanel = nativeSettings.showTowerPanel;
     if (hud.bgmVolume) hud.bgmVolume.value = String(Math.round(game.bgmVolume * 100));
     if (hud.sfxVolume) hud.sfxVolume.value = String(Math.round(game.sfxVolume * 100));
