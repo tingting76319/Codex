@@ -3,6 +3,7 @@ export function bindInputHandlers({
   hud,
   menu,
   onCanvasClick,
+  onCanvasMove,
   onStartWave,
   onTogglePause,
   onToggleSpeed,
@@ -71,6 +72,8 @@ export function bindInputHandlers({
   canvas.style.touchAction = "none";
   canvas.addEventListener("pointerdown", handleCanvasPointer);
   canvas.addEventListener("click", handleCanvasClick);
+  canvas.addEventListener("pointermove", (event) => onCanvasMove?.(event));
+  canvas.addEventListener("mousemove", (event) => onCanvasMove?.(event));
   // Fallback for environments where an invisible overlay intercepts canvas events.
   window.addEventListener("pointerdown", (event) => {
     if (event.target === canvas) return;

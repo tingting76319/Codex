@@ -213,6 +213,7 @@ const game = {
   currentSaveSlot: activeSaveSlot,
   resultShown: false,
   selectedTowerId: null,
+  hoverGridCell: null,
   lastMessage: "",
   bossAlert: { text: "", badge: "警報", timer: 0, total: 0 },
   stats: {
@@ -1421,6 +1422,16 @@ bindInputHandlers({
       if (placed) game.selectedTowerId = placed.id;
       refreshTowerInfoPanel();
     }
+  },
+  onCanvasMove: (event) => {
+    syncMenuStateFromDom();
+    if (game.inMainMenu) return;
+    const { cellX, cellY } = gridFromMouse(event);
+    if (cellX < 0 || cellX >= GRID.cols || cellY < 0 || cellY >= GRID.rows) {
+      game.hoverGridCell = null;
+      return;
+    }
+    game.hoverGridCell = { cellX, cellY };
   },
   onStartWave: startNextWave,
   onTogglePause: () => {

@@ -1,4 +1,7 @@
 export function createRenderer({ ctx, canvas, game, GRID, pathPoints, pathCellSet, towerCatalog }) {
+let perfLastTs = performance.now();
+let perfFrameCount = 0;
+let perfFps = 0;
 const fishSpriteMap = {
   "鯊魚": "./assets/fish-battle/shark-real.png",
   "皇帶魚": "./assets/fish-battle/oarfish-real.png",
@@ -185,6 +188,50 @@ function drawBackground() {
   ctx.font = "bold 12px sans-serif";
   ctx.textAlign = "center";
   ctx.fillText("基地", pathPoints[pathPoints.length - 1].x, pathPoints[pathPoints.length - 1].y + 4);
+
+  const hover = game.hoverGridCell;
+  if (hover && game.selectedTowerType === "support") {
+    const { cellX, cellY } = hover;
+    const inBounds = cellX >= 0 && cellX < GRID.cols && cellY >= 0 && cellY < GRID.rows;
+    if (inBounds) {
+      const px = GRID.x + cellX * GRID.size;
+      const py = GRID.y + cellY * GRID.size;
+      const blockedByPath = pathCellSet.has(`${cellX},${cellY}`);
+      const blockedByTower = game.towers.some((t) => t.cellX === cellX && t.cellY === cellY);
+      const valid = !blockedByPath && !blockedByTower;
+      const supportSpec = towerCatalog.support;
+      const cx = px + GRID.size / 2;
+      const cy = py + GRID.size / 2;
+      if (valid && supportSpec?.supportAura?.radius) {
+        ctx.strokeStyle = "rgba(141,255,185,0.28)";
+        ctx.lineWidth = 1.4;
+        ctx.setLineDash([5, 6]);
+        ctx.beginPath();
+        ctx.arc(cx, cy, supportSpec.supportAura.radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        for (const tower of game.towers) {
+          if (tower.typeKey === "support") continue;
+          const d = Math.hypot(tower.x - cx, tower.y - cy);
+          if (d > supportSpec.supportAura.radius) continue;
+          ctx.strokeStyle = "rgba(141,255,185,0.18)";
+          ctx.beginPath();
+          ctx.moveTo(cx, cy);
+          ctx.lineTo(tower.x, tower.y);
+          ctx.stroke();
+          ctx.fillStyle = "rgba(141,255,185,0.1)";
+          ctx.beginPath();
+          ctx.arc(tower.x, tower.y, 22, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.strokeStyle = valid ? "rgba(141,255,185,0.85)" : "rgba(255,123,123,0.85)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(px + 4, py + 4, GRID.size - 8, GRID.size - 8, 10);
+      ctx.stroke();
+    }
+  }
 }
 
 function drawTowers() {
@@ -740,6 +787,13 @@ function drawParticles() {
 }
 
 function drawOverlay() {
+  const now = performance.now();
+  perfFrameCount += 1;
+  if (now - perfLastTs >= 500) {
+    perfFps = Math.round((perfFrameCount * 1000) / (now - perfLastTs));
+    perfFrameCount = 0;
+    perfLastTs = now;
+  }
   ctx.fillStyle = "rgba(231, 251, 255, 0.86)";
   ctx.font = "bold 14px sans-serif";
   ctx.textAlign = "left";
@@ -779,6 +833,42 @@ function drawOverlay() {
     const stageStars = game.lastAwardedStars ? `｜本次 ${game.lastAwardedStars} 星` : "";
     ctx.fillText(`可切換地圖 / 關卡後按「套用並重開」${stageStars}`, canvas.width / 2, canvas.height / 2 + 18);
   }
+
+  const boss = game.fishes.find((f) => f.isBoss && f.hp > 0);
+  if (boss) {
+    const hpRatio = boss.maxHp > 0 ? boss.hp / boss.maxHp : 1;
+    const phase = boss.isAccelerated ? "Phase 3 狂暴" : (boss.bossShieldHp > 0 ? "Phase 2 護盾" : hpRatio < 0.66 ? "Phase 2 交戰" : "Phase 1");
+    ctx.fillStyle = "rgba(5, 24, 31, 0.78)";
+    ctx.strokeStyle = boss.isAccelerated ? "rgba(255,123,123,0.65)" : boss.bossShieldHp > 0 ? "rgba(125,233,255,0.65)" : "rgba(255,209,102,0.45)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(canvas.width - 220, 14, 206, 46, 12);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#e7fbff";
+    ctx.font = "bold 12px sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(`Boss 階段：${phase}`, canvas.width - 208, 34);
+    ctx.fillStyle = "rgba(203, 238, 244, 0.95)";
+    ctx.font = "11px sans-serif";
+    ctx.fillText(`HP ${(hpRatio * 100).toFixed(0)}%｜盾 ${Math.max(0, boss.bossShieldHp).toFixed(0)}`, canvas.width - 208, 51);
+  }
+
+  ctx.fillStyle = "rgba(5, 24, 31, 0.78)";
+  ctx.strokeStyle = "rgba(125, 233, 255, 0.2)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(14, canvas.height - 64, 238, 50, 10);
+  ctx.fill();
+  ctx.stroke();
+  const spriteMode = game.displaySettings?.spriteQuality ?? "高";
+  const pressure = (game.fishes?.length ?? 0) + ((game.bullets?.length ?? 0) * 0.5) + ((game.particles?.length ?? 0) * 0.12);
+  const spriteActual = spriteMode !== "自動" ? spriteMode : (pressure > 85 ? "低" : "高");
+  ctx.fillStyle = "#cbeef4";
+  ctx.font = "11px sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText(`FPS ${perfFps || 0}｜魚 ${game.fishes.length}｜彈 ${game.bullets.length}｜粒子 ${game.particles.length}`, 24, canvas.height - 42);
+  ctx.fillText(`貼圖品質 ${spriteMode}${spriteMode === "自動" ? `→${spriteActual}` : ""}｜壓力 ${pressure.toFixed(0)}`, 24, canvas.height - 24);
 
 }
 
