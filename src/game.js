@@ -1256,6 +1256,14 @@ function openResultOverlay({ victory }) {
   const earlyBonusRatio = Math.round((earlyBonusTotal / goldForRatio) * 100);
   const avgEarlyBonus = game.wave > 0 ? (earlyBonusTotal / game.wave) : 0;
   const earlyVerdict = earlyBonusRatio >= 25 ? "高收益" : earlyBonusRatio >= 12 ? "穩定收益" : earlyBonusRatio > 0 ? "小幅收益" : "未使用";
+  const condBonusMult = Math.max(1, Number(game.earlyStartConditionBonusMult ?? 1));
+  const condBonusBreakdown = Array.isArray(game.earlyStartConditionBonusBreakdown) ? game.earlyStartConditionBonusBreakdown : [];
+  const condBonusBreakdownText = condBonusBreakdown.length > 0
+    ? condBonusBreakdown
+      .map((entry) => `${entry.label} +${Math.round((entry.bonus ?? 0) * 100)}%`)
+      .join("、")
+    : "無額外條件加成";
+  const condBonusCapNote = condBonusMult >= 1.35 ? "（已達條件加成上限）" : "";
   resultUi.stats.innerHTML = `
     <div class="item"><span>地圖 / 關卡</span><strong>${game.mapShortLabel} / ${game.stageShortLabel}</strong></div>
     <div class="item"><span>波次</span><strong>${game.wave}</strong></div>
@@ -1266,6 +1274,7 @@ function openResultOverlay({ victory }) {
     <div class="item"><span>結算獎勵</span><strong>${victory ? `+${game.lastResultReward || 0}` : "0"}</strong></div>
     <div class="item"><span>提前開波獎勵（本關累計）</span><strong>+${earlyBonusTotal}（約 ${earlyBonusRatio}% 本局金幣）</strong></div>
     <div class="item"><span>提前開波策略分析</span><strong>${earlyVerdict}｜平均每波 +${avgEarlyBonus.toFixed(1)}</strong></div>
+    <div class="item"><span>策略加成來源</span><strong>條件加成 x${condBonusMult.toFixed(2)}｜${condBonusBreakdownText}${condBonusCapNote}</strong></div>
     <div class="item"><span>建塔 / 升級</span><strong>${game.stats.towersPlaced} / ${game.stats.towerUpgrades}</strong></div>
     <div class="item"><span>分支升級 / Boss 擊殺</span><strong>${game.stats.branchUpgrades} / ${game.stats.bossKills}</strong></div>
     ${conditionRows}

@@ -16,17 +16,36 @@ if (typeof game.earlyStartStreak !== "number") game.earlyStartStreak = 0;
 if (typeof game.earlyStartBonusTotal !== "number") game.earlyStartBonusTotal = 0;
 if (typeof game.earlyStartBonusCapMult !== "number") game.earlyStartBonusCapMult = 1.75;
 if (typeof game.earlyStartConditionBonusMult !== "number") game.earlyStartConditionBonusMult = 1;
+if (!Array.isArray(game.earlyStartConditionBonusBreakdown)) game.earlyStartConditionBonusBreakdown = [];
 
-function calcConditionBonusMultiplier() {
+function calcConditionBonusDetails() {
   const conds = wavePlan.clearConditions ?? [];
   let mult = 1;
+  const breakdown = [];
   for (const cond of conds) {
-    if (cond.type === "maxTowersPlaced") mult += 0.12;
-    else if (cond.type === "maxLeaks") mult += 0.08;
-    else if (cond.type === "minLives") mult += 0.05;
-    else if (cond.type === "minKills") mult += 0.04;
+    if (cond.type === "maxTowersPlaced") {
+      mult += 0.12;
+      breakdown.push({ type: cond.type, label: "限塔", bonus: 0.12 });
+    } else if (cond.type === "maxLeaks") {
+      mult += 0.08;
+      breakdown.push({ type: cond.type, label: "限漏怪", bonus: 0.08 });
+    } else if (cond.type === "minLives") {
+      mult += 0.05;
+      breakdown.push({ type: cond.type, label: "最低生命", bonus: 0.05 });
+    } else if (cond.type === "minKills") {
+      mult += 0.04;
+      breakdown.push({ type: cond.type, label: "最低擊殺", bonus: 0.04 });
+    }
   }
-  return Math.min(1.35, mult);
+  const capped = Math.min(1.35, mult);
+  return { mult: capped, uncappedMult: mult, breakdown };
+}
+
+function applyConditionBonusState() {
+  const details = calcConditionBonusDetails();
+  game.earlyStartConditionBonusMult = details.mult;
+  game.earlyStartConditionBonusBreakdown = details.breakdown;
+  return details;
 }
 
 function calcEarlyStartBonus() {
@@ -104,7 +123,7 @@ function buildWave(wave) {
     setMessage("本波魚群尚未結束。");
     return;
   }
-  game.earlyStartConditionBonusMult = calcConditionBonusMultiplier();
+  applyConditionBonusState();
   const hadCountdown = (game.displaySettings?.autoStartWaves !== false) && (game.autoWaveTimer ?? 0) > 0.02;
   const earlyStartBonus = manual ? calcEarlyStartBonus() : 0;
   if (earlyStartBonus > 0) {
@@ -153,11 +172,11 @@ function updateSpawning(dt) {
     if (game.displaySettings?.autoStartWaves === false) {
       game.autoWaveBonusPreview = 0;
       game.earlyStartStreak = 0;
-      game.earlyStartConditionBonusMult = calcConditionBonusMultiplier();
+      applyConditionBonusState();
       updateHud();
       return;
     }
-    game.earlyStartConditionBonusMult = calcConditionBonusMultiplier();
+    applyConditionBonusState();
     game.autoWaveTimer = Math.max(0, (game.autoWaveTimer ?? autoWaveDelaySeconds) - dt);
     game.autoWaveBonusPreview = calcEarlyStartBonus();
     updateHud();
