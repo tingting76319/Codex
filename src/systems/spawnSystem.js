@@ -15,6 +15,19 @@ if (typeof game.autoWaveDelayTotal !== "number") game.autoWaveDelayTotal = autoW
 if (typeof game.earlyStartStreak !== "number") game.earlyStartStreak = 0;
 if (typeof game.earlyStartBonusTotal !== "number") game.earlyStartBonusTotal = 0;
 if (typeof game.earlyStartBonusCapMult !== "number") game.earlyStartBonusCapMult = 1.75;
+if (typeof game.earlyStartConditionBonusMult !== "number") game.earlyStartConditionBonusMult = 1;
+
+function calcConditionBonusMultiplier() {
+  const conds = wavePlan.clearConditions ?? [];
+  let mult = 1;
+  for (const cond of conds) {
+    if (cond.type === "maxTowersPlaced") mult += 0.12;
+    else if (cond.type === "maxLeaks") mult += 0.08;
+    else if (cond.type === "minLives") mult += 0.05;
+    else if (cond.type === "minKills") mult += 0.04;
+  }
+  return Math.min(1.35, mult);
+}
 
 function calcEarlyStartBonus() {
   if (game.displaySettings?.autoStartWaves === false) return 0;
@@ -25,7 +38,8 @@ function calcEarlyStartBonus() {
   const base = Math.max(1, Math.ceil(remaining * 4) + waveFactor);
   const capBonusMult = Math.max(1, Number(game.earlyStartBonusCapMult ?? 1.75));
   const streakMult = 1 + Math.min(capBonusMult - 1, (game.earlyStartStreak ?? 0) * 0.1);
-  return Math.max(1, Math.round(base * streakMult));
+  const condMult = Math.max(1, Number(game.earlyStartConditionBonusMult ?? 1));
+  return Math.max(1, Math.round(base * streakMult * condMult));
 }
 
 function evalCountExpr(expr, wave) {
@@ -90,13 +104,15 @@ function buildWave(wave) {
     setMessage("本波魚群尚未結束。");
     return;
   }
+  game.earlyStartConditionBonusMult = calcConditionBonusMultiplier();
   const hadCountdown = (game.displaySettings?.autoStartWaves !== false) && (game.autoWaveTimer ?? 0) > 0.02;
   const earlyStartBonus = manual ? calcEarlyStartBonus() : 0;
   if (earlyStartBonus > 0) {
     game.gold += earlyStartBonus;
     game.earlyStartBonusTotal = (game.earlyStartBonusTotal ?? 0) + earlyStartBonus;
     game.earlyStartStreak = (game.earlyStartStreak ?? 0) + 1;
-    setMessage(`提前開波獎勵 +${earlyStartBonus} 金幣`);
+    const condText = (game.earlyStartConditionBonusMult ?? 1) > 1 ? `｜條件加成 x${game.earlyStartConditionBonusMult.toFixed(2)}` : "";
+    setMessage(`提前開波獎勵 +${earlyStartBonus} 金幣${condText}`);
     playSfx("build");
   } else if (manual && !hadCountdown) {
     game.earlyStartStreak = 0;
@@ -130,9 +146,11 @@ function updateSpawning(dt) {
     if (game.displaySettings?.autoStartWaves === false) {
       game.autoWaveBonusPreview = 0;
       game.earlyStartStreak = 0;
+      game.earlyStartConditionBonusMult = calcConditionBonusMultiplier();
       updateHud();
       return;
     }
+    game.earlyStartConditionBonusMult = calcConditionBonusMultiplier();
     game.autoWaveTimer = Math.max(0, (game.autoWaveTimer ?? autoWaveDelaySeconds) - dt);
     game.autoWaveBonusPreview = calcEarlyStartBonus();
     updateHud();

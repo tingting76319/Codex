@@ -114,6 +114,11 @@ export function bindInputHandlers({
     const tag = target?.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
     if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.key === " ") {
+      event.preventDefault();
+      onStartWave?.(event);
+      return;
+    }
     if (event.key?.toLowerCase() === "a") {
       event.preventDefault();
       onToggleAutoStartWaves?.();
