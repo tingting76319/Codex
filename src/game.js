@@ -521,8 +521,8 @@ function towerPhotoUrl(towerId) {
     basic: "./assets/tower-codex/basic-real.png",
     slow: "./assets/tower-codex/slow-real.png",
     splash: "./assets/tower-codex/splash-real.png",
-    sniper: "./assets/tower-codex/sniper-real.svg",
-    support: "./assets/tower-codex/support-real.svg"
+    sniper: "./assets/tower-codex/sniper-real.png",
+    support: "./assets/tower-codex/support-real.png"
   };
   return map[towerId] ?? null;
 }
@@ -565,6 +565,33 @@ function describeActiveSupportBuff(buff) {
   if (buff.critBonus && buff.critBonus > 0) parts.push(`暴擊 +${Math.round(buff.critBonus * 100)}%`);
   if (buff.armorBreakBonus && buff.armorBreakBonus > 0) parts.push(`破甲 +${Math.round(buff.armorBreakBonus * 100)}%`);
   return parts.length ? parts.join("｜") : "未受支援塔增益";
+}
+
+function estimateTowerUpgradePreview(tower) {
+  if (!tower || tower.level >= 4) return "已滿級";
+  if (tower.typeKey === "support") {
+    const aura = tower.supportAura ?? {};
+    return `光環半徑 ${Math.round((aura.radius ?? 0) + 12)}｜傷害 x${Math.min(1.55, (aura.damageMult ?? 1) + 0.03).toFixed(2)}｜攻速 x${Math.max(0.62, (aura.fireRateMult ?? 1) - 0.03).toFixed(2)}｜射程 +${Math.round((aura.rangeBonus ?? 0) + 3)}`;
+  }
+  const nextDamage = Math.round(tower.damage + (tower.typeKey === "slow" ? 4 : tower.typeKey === "splash" ? 7 : tower.typeKey === "sniper" ? 14 : 8));
+  const nextRange = Math.round(tower.range + (tower.typeKey === "slow" ? 14 : tower.typeKey === "sniper" ? 20 : 18));
+  const nextFireRate = tower.typeKey === "sniper"
+    ? Math.max(0.75, tower.fireRate * 0.93)
+    : Math.max(tower.typeKey === "splash" ? 0.45 : 0.2, tower.fireRate * 0.9);
+  let text = `傷害 ${nextDamage}｜射程 ${nextRange}｜攻速 ${nextFireRate.toFixed(2)}s`;
+  if (tower.typeKey === "sniper") {
+    const nextCritChance = Math.min(0.6, (tower.critChance ?? 0) + 0.03);
+    const nextCritMultiplier = Math.min(3.4, (tower.critMultiplier ?? 1.8) + 0.08);
+    text += `｜暴擊 ${Math.round(nextCritChance * 100)}% x${nextCritMultiplier.toFixed(2)}`;
+  }
+  if (tower.typeKey === "slow" && tower.slow) {
+    const nextSlow = Math.max(0.34, tower.slow.multiplier - 0.05);
+    text += `｜緩速 ${Math.round((1 - nextSlow) * 100)}%`;
+  }
+  if (tower.typeKey === "splash" && tower.splashRadius) {
+    text += `｜範圍 ${Math.round(tower.splashRadius + 8)}`;
+  }
+  return text;
 }
 
 function getStagesContainingFish(targetFishId) {
@@ -660,6 +687,7 @@ function refreshTowerInfoPanel() {
   const options = getTowerBranchOptions?.(tower) ?? {};
   const branchA = options.A;
   const branchB = options.B;
+  const upgradePreview = estimateTowerUpgradePreview(tower);
   if (hud.towerInfoStats) {
     const dps = tower.fireRate > 0 ? tower.damage / tower.fireRate : tower.damage;
     const branchState = tower.branchLabel
@@ -671,7 +699,8 @@ function refreshTowerInfoPanel() {
       ["攻速", `${tower.fireRate.toFixed(2)}s`],
       ["DPS(估算)", Math.round(dps)],
       ["分支", branchState],
-      ["升級費", tower.level >= 4 ? "已滿級" : tower.upgradeCost]
+      ["升級費", tower.level >= 4 ? "已滿級" : tower.upgradeCost],
+      ["升級後", upgradePreview]
     ];
     if (tower.slow) rows.push(["緩速", `${Math.round((1 - tower.slow.multiplier) * 100)}% / ${tower.slow.duration.toFixed(1)}s`]);
     if (tower.splashRadius) rows.push(["範圍", `${Math.round(tower.splashRadius)} (${Math.round((tower.splashRatio ?? 0) * 100)}%)`]);

@@ -2,7 +2,11 @@ export function createRenderer({ ctx, canvas, game, GRID, pathPoints, pathCellSe
 const fishSpriteMap = {
   "鯊魚": "./assets/fish-battle/shark-real.png",
   "皇帶魚": "./assets/fish-battle/oarfish-real.png",
-  "魟魚": "./assets/fish-battle/ray-real.png"
+  "魟魚": "./assets/fish-battle/ray-real.png",
+  "鯨魚": "./assets/fish-battle/whale-real.png",
+  "河豚": "./assets/fish-battle/puffer-real.png",
+  "旗魚": "./assets/fish-battle/swordfish-real.png",
+  "鮪魚": "./assets/fish-battle/tuna-real.png"
 };
 const fishSpriteCache = new Map();
 
@@ -22,12 +26,32 @@ function drawFishSpriteIfAvailable(fish) {
   const img = getFishSprite(fish.species);
   if (!img || !img.complete || !img.naturalWidth) return false;
   const isOarfish = fish.species === "皇帶魚";
-  const width = fish.radius * (isOarfish ? 5.4 : fish.species === "魟魚" ? 3.3 : 3.8);
-  const height = fish.radius * (isOarfish ? 1.25 : fish.species === "魟魚" ? 2.1 : 2.1);
+  const isRay = fish.species === "魟魚";
+  const isWhale = fish.species === "鯨魚" || fish.isBoss;
+  const isPuffer = fish.species === "河豚";
+  const isSwordfish = fish.species === "旗魚";
+  const width = fish.radius * (
+    isOarfish ? 5.4
+      : isRay ? 3.3
+        : isWhale ? 4.4
+          : isPuffer ? 2.25
+            : isSwordfish ? 4.1
+              : 3.8
+  );
+  const height = fish.radius * (
+    isOarfish ? 1.25
+      : isRay ? 2.1
+        : isWhale ? 2.25
+          : isPuffer ? 2.2
+            : isSwordfish ? 1.75
+              : 2.1
+  );
   ctx.save();
   ctx.beginPath();
-  if (fish.species === "魟魚") {
+  if (isRay) {
     ctx.ellipse(0, 0, width * 0.42, height * 0.42, 0, 0, Math.PI * 2);
+  } else if (isPuffer) {
+    ctx.arc(0, 0, Math.min(width, height) * 0.44, 0, Math.PI * 2);
   } else {
     ctx.roundRect(-width * 0.46, -height * 0.45, width * 0.92, height * 0.9, height * 0.22);
   }
@@ -38,13 +62,17 @@ function drawFishSpriteIfAvailable(fish) {
 
   ctx.strokeStyle = "rgba(255,255,255,0.22)";
   ctx.lineWidth = 1.2;
-  if (fish.species === "魟魚") {
+  if (isRay) {
     ctx.beginPath();
     ctx.ellipse(0, 0, width * 0.42, height * 0.42, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.beginPath();
     ctx.moveTo(-width * 0.12, 0);
     ctx.lineTo(width * 0.38, 0);
+    ctx.stroke();
+  } else if (isPuffer) {
+    ctx.beginPath();
+    ctx.arc(0, 0, Math.min(width, height) * 0.44, 0, Math.PI * 2);
     ctx.stroke();
   } else {
     ctx.beginPath();
