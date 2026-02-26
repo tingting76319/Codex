@@ -195,6 +195,14 @@
                 <label for="menuAutoStartWaves">自動開始每波</label>
                 <input id="menuAutoStartWaves" type="checkbox" checked />
               </div>
+              <div class="menu-setting-line">
+                <label for="menuBossEarlyCueStrength">Boss提前開波音效強度</label>
+                <select id="menuBossEarlyCueStrength">
+                  <option value="低">低</option>
+                  <option value="一般" selected>一般</option>
+                  <option value="強">強</option>
+                </select>
+              </div>
               <p class="main-menu-desc">已接上 renderer：特效密度會影響粒子數量；戰場貼圖品質選「低」會回退向量魚以提升效能；傷害數字可開關。</p>
               <div class="controls">
                 <button id="menuResetSettingsBtn">重設設定</button>
@@ -363,6 +371,14 @@
             data-tooltip="快捷鍵說明（設定）"
             aria-label="開啟快捷鍵說明（設定頁）"
           >⌨</button>
+        </div>
+        <div id="shortcutQuickPopover" class="shortcut-quick-popover is-hidden" role="dialog" aria-label="快捷鍵速覽">
+          <div class="title">快捷鍵速覽</div>
+          <div class="row"><span class="key">Space</span><span>提前開波 / 手動開波</span></div>
+          <div class="row"><span class="key">A</span><span>切換自動開波</span></div>
+          <div class="row"><span class="key">Shift + 點塔</span><span>分支 A 升級</span></div>
+          <div class="row"><span class="key">Alt + 點塔</span><span>分支 B 升級</span></div>
+          <p>左鍵開設定頁說明；右鍵或長按顯示此面板。</p>
         </div>
       </section>
       <section class="game-panel">

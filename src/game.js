@@ -30,7 +30,8 @@ const DEFAULT_SETTINGS = {
   spriteAutoThreshold: 85,
   showTowerPanel: true,
   showPerfStats: true,
-  autoStartWaves: true
+  autoStartWaves: true,
+  bossEarlyCueStrength: "一般"
 };
 
 const DEFAULT_PROGRESS = {
@@ -114,7 +115,8 @@ function sanitizeSettings(raw) {
     spriteAutoThreshold: sanitizeSpriteAutoThreshold(obj.spriteAutoThreshold),
     showTowerPanel: obj.showTowerPanel !== false,
     showPerfStats: obj.showPerfStats !== false,
-    autoStartWaves: obj.autoStartWaves !== false
+    autoStartWaves: obj.autoStartWaves !== false,
+    bossEarlyCueStrength: ["低", "一般", "強"].includes(obj.bossEarlyCueStrength) ? obj.bossEarlyCueStrength : DEFAULT_SETTINGS.bossEarlyCueStrength
   };
 }
 
@@ -247,7 +249,8 @@ const game = {
     spriteAutoThreshold: sanitizeSpriteAutoThreshold(savedSettings.spriteAutoThreshold),
     showTowerPanel: savedSettings.showTowerPanel !== false,
     showPerfStats: savedSettings.showPerfStats !== false,
-    autoStartWaves: savedSettings.autoStartWaves !== false
+    autoStartWaves: savedSettings.autoStartWaves !== false,
+    bossEarlyCueStrength: ["低", "一般", "強"].includes(savedSettings.bossEarlyCueStrength) ? savedSettings.bossEarlyCueStrength : "一般"
   }
 };
 
@@ -941,6 +944,7 @@ function syncMenuSettingsUi() {
   if (menu.showTowerPanel) menu.showTowerPanel.checked = game.displaySettings.showTowerPanel;
   if (menu.showPerfStats) menu.showPerfStats.checked = game.displaySettings.showPerfStats;
   if (menu.autoStartWaves) menu.autoStartWaves.checked = game.displaySettings.autoStartWaves !== false;
+  if (menu.bossEarlyCueStrength) menu.bossEarlyCueStrength.value = game.displaySettings.bossEarlyCueStrength ?? "一般";
   if (menu.saveSlot) menu.saveSlot.value = game.currentSaveSlot;
   if (menu.saveSlotMirror) menu.saveSlotMirror.value = game.currentSaveSlot;
 }
@@ -956,7 +960,8 @@ function persistSettings() {
     spriteAutoThreshold: game.displaySettings.spriteAutoThreshold,
     showTowerPanel: game.displaySettings.showTowerPanel,
     showPerfStats: game.displaySettings.showPerfStats,
-    autoStartWaves: game.displaySettings.autoStartWaves
+    autoStartWaves: game.displaySettings.autoStartWaves,
+    bossEarlyCueStrength: game.displaySettings.bossEarlyCueStrength
   });
 }
 
@@ -1273,6 +1278,13 @@ function openResultOverlay({ victory }) {
       })
       .join("、")
     : "無";
+  const condBonusShareBars = condBonusBreakdown.length > 0 && condBonusPctTotal > 0
+    ? condBonusBreakdown.map((entry) => {
+      const pct = Math.round((entry.bonus ?? 0) * 100);
+      const share = Math.max(1, Math.round((pct / condBonusPctTotal) * 100));
+      return `<div class="share-bar"><span>${entry.label}</span><div class="track"><div class="fill" style="width:${Math.max(4, Math.min(100, share))}%"></div></div><strong>${share}%</strong></div>`;
+    }).join("")
+    : `<div class="share-bar is-empty"><span>無</span><div class="track"><div class="fill" style="width:0%"></div></div><strong>0%</strong></div>`;
   const condBonusCapNote = condBonusMult >= 1.35 ? "（已達條件加成上限）" : "";
   resultUi.stats.innerHTML = `
     <div class="item"><span>地圖 / 關卡</span><strong>${game.mapShortLabel} / ${game.stageShortLabel}</strong></div>
@@ -1285,7 +1297,7 @@ function openResultOverlay({ victory }) {
     <div class="item"><span>提前開波獎勵（本關累計）</span><strong>+${earlyBonusTotal}（約 ${earlyBonusRatio}% 本局金幣）</strong></div>
     <div class="item"><span>提前開波策略分析</span><strong>${earlyVerdict}｜平均每波 +${avgEarlyBonus.toFixed(1)}</strong></div>
     <div class="item"><span>策略加成來源</span><strong>條件加成 x${condBonusMult.toFixed(2)}｜${condBonusBreakdownText}${condBonusCapNote}</strong></div>
-    <div class="item"><span>加成來源占比</span><strong>${condBonusShareText}</strong></div>
+    <div class="item"><span>加成來源占比</span><strong>${condBonusShareText}</strong><div class="share-bars">${condBonusShareBars}</div></div>
     <div class="item"><span>建塔 / 升級</span><strong>${game.stats.towersPlaced} / ${game.stats.towerUpgrades}</strong></div>
     <div class="item"><span>分支升級 / Boss 擊殺</span><strong>${game.stats.branchUpgrades} / ${game.stats.bossKills}</strong></div>
     ${conditionRows}
@@ -1736,6 +1748,14 @@ menu.autoStartWaves?.addEventListener("change", () => {
   syncMenuSettingsUi();
   updateHud();
 });
+menu.bossEarlyCueStrength?.addEventListener("change", () => {
+  game.displaySettings.bossEarlyCueStrength = ["低", "一般", "強"].includes(menu.bossEarlyCueStrength.value)
+    ? menu.bossEarlyCueStrength.value
+    : "一般";
+  persistSettings();
+  syncMenuSettingsUi();
+  setMessage(`Boss提前開波音效強度：${game.displaySettings.bossEarlyCueStrength}`);
+});
 menu.resetSettingsBtn?.addEventListener("click", () => {
   game.audioMuted = false;
   game.bgmVolume = 0.45;
@@ -1747,6 +1767,7 @@ menu.resetSettingsBtn?.addEventListener("click", () => {
   game.displaySettings.showTowerPanel = true;
   game.displaySettings.showPerfStats = true;
   game.displaySettings.autoStartWaves = true;
+  game.displaySettings.bossEarlyCueStrength = "一般";
   if (hud.bgmVolume) hud.bgmVolume.value = "45";
   if (hud.sfxVolume) hud.sfxVolume.value = "70";
   applyAudioVolumes();
@@ -1923,6 +1944,7 @@ try {
     game.displaySettings.showTowerPanel = nativeSettings.showTowerPanel;
     game.displaySettings.showPerfStats = nativeSettings.showPerfStats;
     game.displaySettings.autoStartWaves = nativeSettings.autoStartWaves;
+    game.displaySettings.bossEarlyCueStrength = nativeSettings.bossEarlyCueStrength;
     if (hud.bgmVolume) hud.bgmVolume.value = String(Math.round(game.bgmVolume * 100));
     if (hud.sfxVolume) hud.sfxVolume.value = String(Math.round(game.sfxVolume * 100));
     applyAudioVolumes();

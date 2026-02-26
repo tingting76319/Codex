@@ -89,7 +89,73 @@ export function bindInputHandlers({
   bindPress(hud.pauseBtn, onTogglePause);
   bindPress(hud.speedBtn, onToggleSpeed);
   bindPress(hud.openMenuBtn, onOpenMenu);
-  bindPress(hud.openShortcutHelpBtn, onOpenShortcutHelp);
+  {
+    const btn = hud.openShortcutHelpBtn;
+    const pop = document.getElementById("shortcutQuickPopover");
+    let longPressTimer = null;
+    let longPressTriggered = false;
+    const clearLongPress = () => {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+    };
+    const positionPopover = () => {
+      if (!btn || !pop) return;
+      const rect = btn.getBoundingClientRect();
+      pop.style.left = `${Math.round(rect.left)}px`;
+      pop.style.top = `${Math.round(rect.bottom + 8)}px`;
+    };
+    const showQuickPopover = () => {
+      if (!btn || !pop) return;
+      positionPopover();
+      pop.classList.remove("is-hidden");
+    };
+    const hideQuickPopover = () => {
+      pop?.classList.add("is-hidden");
+    };
+    if (btn) {
+      btn.addEventListener("pointerdown", (event) => {
+        if ("button" in event && event.button !== 0) return;
+        longPressTriggered = false;
+        clearLongPress();
+        longPressTimer = setTimeout(() => {
+          longPressTriggered = true;
+          showQuickPopover();
+        }, 420);
+      });
+      btn.addEventListener("pointerup", clearLongPress);
+      btn.addEventListener("pointerleave", clearLongPress);
+      btn.addEventListener("pointercancel", clearLongPress);
+      btn.addEventListener("contextmenu", (event) => {
+        event.preventDefault();
+        clearLongPress();
+        longPressTriggered = true;
+        if (pop?.classList.contains("is-hidden")) showQuickPopover();
+        else hideQuickPopover();
+      });
+      btn.addEventListener("click", (event) => {
+        clearLongPress();
+        if (longPressTriggered) {
+          longPressTriggered = false;
+          return;
+        }
+        onOpenShortcutHelp?.(event);
+      });
+    }
+    window.addEventListener("resize", () => {
+      if (pop && !pop.classList.contains("is-hidden")) positionPopover();
+    });
+    document.addEventListener("pointerdown", (event) => {
+      if (!pop || pop.classList.contains("is-hidden")) return;
+      if (event.target === btn || btn?.contains?.(event.target)) return;
+      if (pop.contains(event.target)) return;
+      hideQuickPopover();
+    }, true);
+    window.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") hideQuickPopover();
+    });
+  }
   bindPress(hud.openSaveBtn, onOpenSave);
   bindPress(hud.towerTypeBasicBtn, () => onSelectTowerType?.("basic"));
   bindPress(hud.towerTypeSlowBtn, () => onSelectTowerType?.("slow"));

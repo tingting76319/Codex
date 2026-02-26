@@ -97,6 +97,7 @@ export const menu = {
   codexTypeFilter: document.getElementById("menuCodexTypeFilter"),
   codexSizeFilter: document.getElementById("menuCodexSizeFilter"),
   codexSkillFilter: document.getElementById("menuCodexSkillFilter"),
+  bossEarlyCueStrength: document.getElementById("menuBossEarlyCueStrength"),
   goStagesBtn: document.getElementById("menuGoStagesBtn"),
   stageStartBtn: document.getElementById("menuStageStartBtn"),
   backHomeBtn: document.getElementById("menuBackHomeBtn"),
@@ -125,5 +126,6 @@ export const overlays = {
   bossAlert: document.getElementById("bossAlert"),
   bossAlertBadge: document.getElementById("bossAlertBadge"),
   bossAlertText: document.getElementById("bossAlertText"),
-  bossAlertTimer: document.getElementById("bossAlertTimer")
+  bossAlertTimer: document.getElementById("bossAlertTimer"),
+  shortcutQuickPopover: document.getElementById("shortcutQuickPopover")
 };

@@ -841,6 +841,55 @@ body {
   transform: translateY(-50%) translateX(0);
 }
 
+.shortcut-quick-popover {
+  position: fixed;
+  z-index: 40;
+  min-width: 220px;
+  max-width: 300px;
+  border-radius: 12px;
+  border: 1px solid rgba(125,233,255,0.2);
+  background: rgba(8, 22, 32, 0.96);
+  box-shadow: 0 14px 34px rgba(0,0,0,0.28);
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.shortcut-quick-popover.is-hidden {
+  display: none;
+}
+
+.shortcut-quick-popover .title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #e9fbff;
+}
+
+.shortcut-quick-popover .row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  color: #c7e7ee;
+}
+
+.shortcut-quick-popover .key {
+  border-radius: 7px;
+  border: 1px solid rgba(125,233,255,0.22);
+  background: rgba(125,233,255,0.06);
+  color: #e6fbff;
+  padding: 2px 6px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.shortcut-quick-popover p {
+  margin: 4px 0 0;
+  color: #99c8d4;
+  font-size: 10px;
+}
+
 .wave-auto-status {
   margin-top: 8px;
   margin-bottom: 10px;
@@ -1268,6 +1317,49 @@ button.is-active {
   font-size: 16px;
 }
 
+.result-stats .item .share-bars {
+  display: grid;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.result-stats .item .share-bar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  color: #cfeaf2;
+}
+
+.result-stats .item .share-bar span {
+  font-size: 11px;
+  color: #cfeaf2;
+  white-space: nowrap;
+}
+
+.result-stats .item .share-bar .track {
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.06);
+}
+
+.result-stats .item .share-bar .fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(125,233,255,0.8), rgba(255,209,102,0.85));
+  border-radius: 999px;
+}
+
+.result-stats .item .share-bar strong {
+  font-size: 11px;
+  color: #effcff;
+}
+
+.result-stats .item .share-bar.is-empty {
+  opacity: 0.7;
+}
+
 .result-stats .item.condition.ok strong {
   color: #a9ffd1;
 }
@@ -1467,8 +1559,9 @@ button.is-active {
 
   .controls #openShortcutHelpBtn.icon-button {
     justify-self: end;
-    position: sticky;
-    top: 6px;
+    position: fixed;
+    right: 14px;
+    bottom: 14px;
     z-index: 3;
     width: 40px;
     height: 36px;
@@ -1485,6 +1578,10 @@ button.is-active {
   .controls #openShortcutHelpBtn.icon-button:hover::after,
   .controls #openShortcutHelpBtn.icon-button:focus-visible::after {
     transform: translateY(-50%) translateX(0);
+  }
+
+  .shortcut-quick-popover {
+    max-width: min(300px, calc(100vw - 28px));
   }
 
   .main-menu-card h1 {

@@ -158,10 +158,16 @@ function playSfx(name) {
     playTone({ type: "square", freq: 520, endFreq: 760, duration: 0.07, gain: 0.05 });
     playTone({ type: "triangle", freq: 760, endFreq: 980, duration: 0.06, gain: 0.04, when: audioState.ctx.currentTime + 0.05 });
   } else if (name === "waveEarlyBoss") {
-    playTone({ type: "sawtooth", freq: 240, endFreq: 180, duration: 0.1, gain: 0.055 });
-    playTone({ type: "square", freq: 520, endFreq: 860, duration: 0.08, gain: 0.05, when: audioState.ctx.currentTime + 0.04 });
-    playTone({ type: "triangle", freq: 860, endFreq: 1120, duration: 0.07, gain: 0.04, when: audioState.ctx.currentTime + 0.1 });
-    playNoiseBurst({ duration: 0.04, gain: 0.02, lowpass: 1500 });
+    const strength = game.displaySettings?.bossEarlyCueStrength ?? "一般";
+    const gainScale = strength === "低" ? 0.75 : strength === "強" ? 1.22 : 1;
+    const noiseGain = strength === "低" ? 0.012 : strength === "強" ? 0.03 : 0.02;
+    playTone({ type: "sawtooth", freq: 240, endFreq: 180, duration: 0.1, gain: 0.055 * gainScale });
+    playTone({ type: "square", freq: 520, endFreq: 860, duration: 0.08, gain: 0.05 * gainScale, when: audioState.ctx.currentTime + 0.04 });
+    playTone({ type: "triangle", freq: 860, endFreq: 1120, duration: 0.07, gain: 0.04 * gainScale, when: audioState.ctx.currentTime + 0.1 });
+    if (strength === "強") {
+      playTone({ type: "square", freq: 320, endFreq: 180, duration: 0.06, gain: 0.03 * gainScale, when: audioState.ctx.currentTime + 0.18 });
+    }
+    playNoiseBurst({ duration: 0.04, gain: noiseGain, lowpass: 1500 });
   }
   else if (name === "bossAlarm") {
     playTone({ type: "sawtooth", freq: 180, duration: 0.18, gain: 0.06 });
