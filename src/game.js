@@ -29,7 +29,8 @@ const DEFAULT_SETTINGS = {
   spriteQuality: "高",
   spriteAutoThreshold: 85,
   showTowerPanel: true,
-  showPerfStats: true
+  showPerfStats: true,
+  autoStartWaves: true
 };
 
 const DEFAULT_PROGRESS = {
@@ -112,7 +113,8 @@ function sanitizeSettings(raw) {
     spriteQuality: ["低", "自動", "高"].includes(obj.spriteQuality) ? obj.spriteQuality : DEFAULT_SETTINGS.spriteQuality,
     spriteAutoThreshold: sanitizeSpriteAutoThreshold(obj.spriteAutoThreshold),
     showTowerPanel: obj.showTowerPanel !== false,
-    showPerfStats: obj.showPerfStats !== false
+    showPerfStats: obj.showPerfStats !== false,
+    autoStartWaves: obj.autoStartWaves !== false
   };
 }
 
@@ -244,7 +246,8 @@ const game = {
     spriteQuality: ["低", "自動", "高"].includes(savedSettings.spriteQuality) ? savedSettings.spriteQuality : "高",
     spriteAutoThreshold: sanitizeSpriteAutoThreshold(savedSettings.spriteAutoThreshold),
     showTowerPanel: savedSettings.showTowerPanel !== false,
-    showPerfStats: savedSettings.showPerfStats !== false
+    showPerfStats: savedSettings.showPerfStats !== false,
+    autoStartWaves: savedSettings.autoStartWaves !== false
   }
 };
 
@@ -937,6 +940,7 @@ function syncMenuSettingsUi() {
   }
   if (menu.showTowerPanel) menu.showTowerPanel.checked = game.displaySettings.showTowerPanel;
   if (menu.showPerfStats) menu.showPerfStats.checked = game.displaySettings.showPerfStats;
+  if (menu.autoStartWaves) menu.autoStartWaves.checked = game.displaySettings.autoStartWaves !== false;
   if (menu.saveSlot) menu.saveSlot.value = game.currentSaveSlot;
   if (menu.saveSlotMirror) menu.saveSlotMirror.value = game.currentSaveSlot;
 }
@@ -951,7 +955,8 @@ function persistSettings() {
     spriteQuality: game.displaySettings.spriteQuality,
     spriteAutoThreshold: game.displaySettings.spriteAutoThreshold,
     showTowerPanel: game.displaySettings.showTowerPanel,
-    showPerfStats: game.displaySettings.showPerfStats
+    showPerfStats: game.displaySettings.showPerfStats,
+    autoStartWaves: game.displaySettings.autoStartWaves
   });
 }
 
@@ -1461,7 +1466,7 @@ bindInputHandlers({
     }
     game.hoverGridCell = { cellX, cellY };
   },
-  onStartWave: startNextWave,
+  onStartWave: () => startNextWave({ manual: true }),
   onTogglePause: () => {
     syncMenuStateFromDom();
     if (game.inMainMenu) {
@@ -1682,6 +1687,12 @@ menu.showPerfStats?.addEventListener("change", () => {
   persistSettings();
   syncMenuSettingsUi();
 });
+menu.autoStartWaves?.addEventListener("change", () => {
+  game.displaySettings.autoStartWaves = Boolean(menu.autoStartWaves.checked);
+  persistSettings();
+  syncMenuSettingsUi();
+  updateHud();
+});
 menu.resetSettingsBtn?.addEventListener("click", () => {
   game.audioMuted = false;
   game.bgmVolume = 0.45;
@@ -1692,6 +1703,7 @@ menu.resetSettingsBtn?.addEventListener("click", () => {
   game.displaySettings.spriteAutoThreshold = 85;
   game.displaySettings.showTowerPanel = true;
   game.displaySettings.showPerfStats = true;
+  game.displaySettings.autoStartWaves = true;
   if (hud.bgmVolume) hud.bgmVolume.value = "45";
   if (hud.sfxVolume) hud.sfxVolume.value = "70";
   applyAudioVolumes();
@@ -1867,6 +1879,7 @@ try {
     game.displaySettings.spriteAutoThreshold = sanitizeSpriteAutoThreshold(nativeSettings.spriteAutoThreshold);
     game.displaySettings.showTowerPanel = nativeSettings.showTowerPanel;
     game.displaySettings.showPerfStats = nativeSettings.showPerfStats;
+    game.displaySettings.autoStartWaves = nativeSettings.autoStartWaves;
     if (hud.bgmVolume) hud.bgmVolume.value = String(Math.round(game.bgmVolume * 100));
     if (hud.sfxVolume) hud.sfxVolume.value = String(Math.round(game.sfxVolume * 100));
     applyAudioVolumes();

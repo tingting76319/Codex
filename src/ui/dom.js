@@ -86,6 +86,7 @@ export const menu = {
   spriteAutoThresholdHint: document.getElementById("menuSpriteAutoThresholdHint"),
   showTowerPanel: document.getElementById("menuShowTowerPanel"),
   showPerfStats: document.getElementById("menuShowPerfStats"),
+  autoStartWaves: document.getElementById("menuAutoStartWaves"),
   resetSettingsBtn: document.getElementById("menuResetSettingsBtn"),
   codexSearch: document.getElementById("menuCodexSearch"),
   codexTypeFilter: document.getElementById("menuCodexTypeFilter"),

@@ -10,6 +10,16 @@ export function createSpawnSystem({
 }) {
 const autoWaveDelaySeconds = wavePlan.autoWaveDelaySeconds ?? 1.4;
 if (typeof game.autoWaveTimer !== "number") game.autoWaveTimer = autoWaveDelaySeconds;
+if (typeof game.autoWaveBonusPreview !== "number") game.autoWaveBonusPreview = 0;
+
+function calcEarlyStartBonus() {
+  if (game.displaySettings?.autoStartWaves === false) return 0;
+  if (game.waveActive) return 0;
+  const remaining = Math.max(0, Number(game.autoWaveTimer ?? 0));
+  if (remaining <= 0.02) return 0;
+  const waveFactor = Math.min(8, Math.floor(Math.max(1, game.wave + 1) / 2));
+  return Math.max(1, Math.ceil(remaining * 4) + waveFactor);
+}
 
 function evalCountExpr(expr, wave) {
   if (!expr) return 0;
@@ -60,7 +70,8 @@ function buildWave(wave) {
   return queue;
 }
 
-  function startNextWave() {
+  function startNextWave(options = {}) {
+    const manual = options.manual === true;
     const maxWaves = wavePlan.maxWaves ?? null;
     if (maxWaves && game.wave >= maxWaves && !game.waveActive) {
       const finished = game.stageCleared || game.stageFailed;
@@ -72,18 +83,27 @@ function buildWave(wave) {
     setMessage("本波魚群尚未結束。");
     return;
   }
+  const earlyStartBonus = manual ? calcEarlyStartBonus() : 0;
+  if (earlyStartBonus > 0) {
+    game.gold += earlyStartBonus;
+    setMessage(`提前開波獎勵 +${earlyStartBonus} 金幣`);
+    playSfx("build");
+  }
   game.wave += 1;
   game.spawnQueue = buildWave(game.wave);
   game.spawnTimer = 0;
   game.waveActive = true;
   game.autoWaveTimer = autoWaveDelaySeconds;
+  game.autoWaveBonusPreview = 0;
   const bossInterval = wavePlan.bossWave?.interval ?? 5;
   if (game.wave > 0 && game.wave % bossInterval === 0) {
-    setMessage(`第 ${game.wave} 波 Boss 波次開始！共 ${game.spawnQueue.length} 隻魚。`);
+    const bonusText = earlyStartBonus > 0 ? `｜提前 +${earlyStartBonus} 金幣` : "";
+    setMessage(`第 ${game.wave} 波 Boss 波次開始！共 ${game.spawnQueue.length} 隻魚。${bonusText}`);
     playSfx("bossAlarm");
     showBossAlert?.(`Boss 波次開始：第 ${game.wave} 波`, { badge: "BOSS", duration: 2.8 });
   } else {
-    setMessage(`第 ${game.wave} 波開始，共 ${game.spawnQueue.length} 隻魚。`);
+    const bonusText = earlyStartBonus > 0 ? `｜提前 +${earlyStartBonus} 金幣` : "";
+    setMessage(`第 ${game.wave} 波開始，共 ${game.spawnQueue.length} 隻魚。${bonusText}`);
     playSfx("waveStart");
   }
   updateHud();
@@ -94,9 +114,16 @@ function updateSpawning(dt) {
     const maxWaves = wavePlan.maxWaves ?? null;
     if (game.stageCleared || game.stageFailed || game.lives <= 0) return;
     if (maxWaves && game.wave >= maxWaves) return;
+    if (game.displaySettings?.autoStartWaves === false) {
+      game.autoWaveBonusPreview = 0;
+      updateHud();
+      return;
+    }
     game.autoWaveTimer = Math.max(0, (game.autoWaveTimer ?? autoWaveDelaySeconds) - dt);
+    game.autoWaveBonusPreview = calcEarlyStartBonus();
+    updateHud();
     if (game.autoWaveTimer <= 0) {
-      startNextWave();
+      startNextWave({ auto: true });
     }
     return;
   }
@@ -130,6 +157,8 @@ function updateSpawning(dt) {
     } else {
       setMessage(`第 ${game.wave} 波完成！準備下一波。`);
       game.autoWaveTimer = autoWaveDelaySeconds;
+      game.autoWaveBonusPreview = calcEarlyStartBonus();
+      updateHud();
     }
   }
 }
