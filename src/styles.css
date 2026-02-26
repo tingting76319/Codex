@@ -926,6 +926,12 @@ body {
   font-size: 10px;
 }
 
+.shortcut-quick-popover .reason {
+  margin: 2px 0 0;
+  font-size: 10px;
+  color: #b9dfe8;
+}
+
 .wave-auto-status {
   margin-top: 8px;
   margin-bottom: 10px;

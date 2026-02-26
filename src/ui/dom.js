@@ -100,6 +100,7 @@ export const menu = {
   bossEarlyCueStrength: document.getElementById("menuBossEarlyCueStrength"),
   bossEarlyCuePreviewBtn: document.getElementById("menuBossEarlyCuePreviewBtn"),
   bossEarlyCueCompareBtn: document.getElementById("menuBossEarlyCueCompareBtn"),
+  bossEarlyCueCompareStatus: document.getElementById("menuBossEarlyCueCompareStatus"),
   goStagesBtn: document.getElementById("menuGoStagesBtn"),
   stageStartBtn: document.getElementById("menuStageStartBtn"),
   backHomeBtn: document.getElementById("menuBackHomeBtn"),

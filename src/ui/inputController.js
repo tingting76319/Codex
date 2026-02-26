@@ -92,6 +92,7 @@ export function bindInputHandlers({
   {
     const btn = hud.openShortcutHelpBtn;
     const pop = document.getElementById("shortcutQuickPopover");
+    const reasonEl = document.getElementById("shortcutQuickReason");
     let longPressTimer = null;
     let longPressTriggered = false;
     const clearLongPress = () => {
@@ -113,14 +114,22 @@ export function bindInputHandlers({
       for (const row of pop.querySelectorAll(".action-row")) {
         const action = row.dataset.shortcutAction;
         let available = true;
+        let reason = "";
         if (action === "space" || action === "autoWave") available = !menuVisible;
         if (action === "branchA" || action === "branchB") available = !menuVisible && towerSelected;
+        if (!available) {
+          if (menuVisible) reason = "目前在主選單中，戰鬥快捷鍵暫不可用";
+          else if (!towerSelected && (action === "branchA" || action === "branchB")) reason = "需先選取塔台，分支快捷鍵才可用";
+          else reason = "目前狀態不可用";
+        }
         row.classList.toggle("is-unavailable", !available);
         row.disabled = !available;
         row.setAttribute("aria-disabled", available ? "false" : "true");
+        row.dataset.reason = reason;
         const label = row.dataset.label || row.textContent?.trim() || "快捷鍵";
-        row.title = available ? label : `${label}（目前不可用）`;
+        row.title = available ? label : `${label}（${reason}）`;
       }
+      if (reasonEl) reasonEl.textContent = "提示：可用項目可直接用 Enter 觸發";
       positionPopover();
       pop.classList.remove("is-hidden");
       pop.querySelector(".action-row")?.focus();
@@ -160,12 +169,23 @@ export function bindInputHandlers({
     pop?.addEventListener("click", (event) => {
       const row = event.target.closest(".action-row");
       if (!row) return;
+      if (row.disabled) {
+        if (reasonEl) reasonEl.textContent = `提示：${row.dataset.reason || "目前不可用"}`;
+        return;
+      }
       const action = row.dataset.shortcutAction;
       if (action === "space") {
         onStartWave?.(event);
       } else if (action === "autoWave") {
         onToggleAutoStartWaves?.();
       }
+    });
+    pop?.addEventListener("focusin", (event) => {
+      const row = event.target.closest?.(".action-row");
+      if (!row || !reasonEl) return;
+      reasonEl.textContent = row.disabled
+        ? `提示：${row.dataset.reason || "目前不可用"}`
+        : `提示：${row.dataset.label || "快捷鍵"}（Enter 可觸發）`;
     });
     window.addEventListener("resize", () => {
       if (pop && !pop.classList.contains("is-hidden")) positionPopover();

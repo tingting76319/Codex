@@ -1308,6 +1308,9 @@ function openResultOverlay({ victory }) {
       : earlyStartUseRate > 0
         ? "使用率偏低，可優先在非Boss波且場面穩定時提早開波。"
         : "本局未使用提前開波；若防線穩定可在倒數前段提早開波增加金幣。";
+  const bestWaveRangeHint = game.wave >= 10
+    ? "建議區間：前中期（約 20%~65% 波次）通常最適合提前開波，兼顧防線穩定與獎勵累積。"
+    : "建議區間：前半段波次優先嘗試提前開波，先建立連續獎勵倍率。";
   resultUi.stats.innerHTML = `
     <div class="item"><span>地圖 / 關卡</span><strong>${game.mapShortLabel} / ${game.stageShortLabel}</strong></div>
     <div class="item"><span>波次</span><strong>${game.wave}</strong></div>
@@ -1319,6 +1322,7 @@ function openResultOverlay({ victory }) {
     <div class="item"><span>提前開波獎勵（本關累計）</span><strong>+${earlyBonusTotal}（約 ${earlyBonusRatio}% 本局金幣）</strong></div>
     <div class="item"><span>提前開波策略分析</span><strong>${earlyVerdict}｜平均每波 +${avgEarlyBonus.toFixed(1)}</strong></div>
     <div class="item"><span>提前開波使用率</span><strong>${earlyStartCount}/${Math.max(game.wave, 0)} 波（${earlyStartUseRate}%）｜${usageOpportunityHint}</strong></div>
+    <div class="item strategy-tip"><span>最佳提前波次區間</span><strong>${bestWaveRangeHint}</strong></div>
     <div class="item"><span>策略加成來源</span><strong>條件加成 x${condBonusMult.toFixed(2)}｜${condBonusBreakdownText}${condBonusCapNote}</strong></div>
     <div class="item"><span>加成來源占比</span><strong>${condBonusShareText}</strong><div class="share-bars">${condBonusShareBars}</div></div>
     <div class="item strategy-tip"><span>提前開波策略提示</span><strong>${strategyHintText}</strong></div>
@@ -1789,14 +1793,17 @@ menu.bossEarlyCueCompareBtn?.addEventListener("click", () => {
   ensureAudio();
   const original = game.displaySettings.bossEarlyCueStrength;
   const seq = ["低", "一般", "強"];
+  if (menu.bossEarlyCueCompareStatus) menu.bossEarlyCueCompareStatus.textContent = "比較模式播放中：準備...";
   seq.forEach((mode, idx) => {
     setTimeout(() => {
       game.displaySettings.bossEarlyCueStrength = mode;
+      if (menu.bossEarlyCueCompareStatus) menu.bossEarlyCueCompareStatus.textContent = `比較模式播放中：${mode}`;
       playSfx("waveEarlyBoss");
       if (idx === seq.length - 1) {
         setTimeout(() => {
           game.displaySettings.bossEarlyCueStrength = original;
           syncMenuSettingsUi();
+          if (menu.bossEarlyCueCompareStatus) menu.bossEarlyCueCompareStatus.textContent = `比較模式完成（已恢復：${original}）`;
         }, 120);
       }
     }, idx * 320);
