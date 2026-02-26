@@ -1,4 +1,19 @@
 export function createCombatSystem({ game, fishCatalog, pathPoints, spawnFish, setMessage, playSfx, showBossAlert }) {
+function pushBossSkillHistory(boss, label, icon = "•") {
+  if (!boss?.isBoss) return;
+  if (!Array.isArray(game.bossSkillHistory)) game.bossSkillHistory = [];
+  game.bossSkillHistory.push({
+    bossId: boss.id,
+    label,
+    icon,
+    atWave: game.wave,
+    ts: Date.now()
+  });
+  if (game.bossSkillHistory.length > 16) {
+    game.bossSkillHistory = game.bossSkillHistory.slice(-16);
+  }
+}
+
 function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
@@ -263,9 +278,10 @@ function applyBurnToFish(fish, burn) {
     color: "rgba(255,209,102,0.9)",
     ringRadius: (boss.radius ?? 30) + 20
   });
-    setMessage("深海鯨王召喚魚群增援！");
-    playSfx("bossSummon");
-    showBossAlert?.("Boss 召喚魚群增援", { badge: "召喚", duration: 2.2 });
+  setMessage("深海鯨王召喚魚群增援！");
+  playSfx("bossSummon");
+  showBossAlert?.("Boss 召喚魚群增援", { badge: "召喚", duration: 2.2 });
+  pushBossSkillHistory(boss, "召喚", "召");
   }
 
 function triggerBossSkillsOnHpThresholds(fish) {
@@ -291,6 +307,7 @@ function triggerBossSkillsOnHpThresholds(fish) {
     setMessage("深海鯨王展開護盾階段！");
     playSfx("bossShield");
     showBossAlert?.("Boss 進入護盾階段", { badge: "護盾", duration: 2.4 });
+    pushBossSkillHistory(fish, "護盾", "盾");
   }
 }
 
@@ -455,6 +472,7 @@ function updateFishes(dt) {
           setMessage(`${fish.label} 進入狂暴階段！速度提升 x${(fish.accelerationSkill.multiplier ?? 1).toFixed(2)}`);
           playSfx("bossAlarm");
           showBossAlert?.(`Boss 進入狂暴階段（x${(fish.accelerationSkill.multiplier ?? 1).toFixed(2)}）`, { badge: "狂暴", duration: 2.6 });
+          pushBossSkillHistory(fish, "狂暴", "怒");
         }
       }
     }

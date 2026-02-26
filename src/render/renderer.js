@@ -2,6 +2,9 @@ export function createRenderer({ ctx, canvas, game, GRID, pathPoints, pathCellSe
 let perfLastTs = performance.now();
 let perfFrameCount = 0;
 let perfFps = 0;
+let autoSpriteActualLast = null;
+let autoSpriteSwitchCount = 0;
+let autoSpriteLastSwitchAt = 0;
 const fishSpriteMap = {
   "鯊魚": "./assets/fish-battle/shark-real.png",
   "皇帶魚": "./assets/fish-battle/oarfish-real.png",
@@ -32,6 +35,39 @@ function effectiveSpriteQuality() {
   if (mode !== "自動") return mode;
   const pressure = (game.fishes?.length ?? 0) + ((game.bullets?.length ?? 0) * 0.5) + ((game.particles?.length ?? 0) * 0.12);
   return pressure > 85 ? "低" : "高";
+}
+
+function mergedSupportBuffWithCaps(baseBuff = null, aura = null) {
+  const merged = {
+    damageMult: baseBuff?.damageMult ?? 1,
+    fireRateMult: baseBuff?.fireRateMult ?? 1,
+    rangeBonus: baseBuff?.rangeBonus ?? 0,
+    critBonus: baseBuff?.critBonus ?? 0,
+    armorBreakBonus: baseBuff?.armorBreakBonus ?? 0
+  };
+  if (!aura) return merged;
+  merged.damageMult *= aura.damageMult ?? 1;
+  merged.fireRateMult *= aura.fireRateMult ?? 1;
+  merged.rangeBonus += aura.rangeBonus ?? 0;
+  merged.critBonus += aura.critBonus ?? 0;
+  merged.armorBreakBonus += aura.armorBreakBonus ?? 0;
+  merged.damageMult = Math.min(merged.damageMult, 1.45);
+  merged.fireRateMult = Math.max(merged.fireRateMult, 0.6);
+  merged.rangeBonus = Math.min(merged.rangeBonus, 44);
+  merged.critBonus = Math.min(merged.critBonus, 0.35);
+  merged.armorBreakBonus = Math.min(merged.armorBreakBonus, 0.18);
+  return merged;
+}
+
+function estimateTowerDpsWithBuff(tower, buff = null) {
+  if (!tower || tower.typeKey === "support") return 0;
+  const damage = Math.max(0, (tower.damage ?? 0) * (buff?.damageMult ?? 1));
+  const fireRate = Math.max(0.08, (tower.fireRate ?? 1) * (buff?.fireRateMult ?? 1));
+  const critChance = Math.min(0.95, Math.max(0, (tower.critChance ?? 0) + (buff?.critBonus ?? 0)));
+  const critMultiplier = Math.max(1, tower.critMultiplier ?? 1);
+  const expectedHit = damage * (1 + critChance * (critMultiplier - 1));
+  if (!Number.isFinite(expectedHit) || !Number.isFinite(fireRate) || fireRate <= 0) return 0;
+  return expectedHit / fireRate;
 }
 
 function drawFishSpriteIfAvailable(fish) {
@@ -204,6 +240,7 @@ function drawBackground() {
       const cy = py + GRID.size / 2;
       if (valid && supportSpec?.supportAura?.radius) {
         let coveredCount = 0;
+        let addedDps = 0;
         ctx.strokeStyle = "rgba(141,255,185,0.28)";
         ctx.lineWidth = 1.4;
         ctx.setLineDash([5, 6]);
@@ -216,6 +253,9 @@ function drawBackground() {
           const d = Math.hypot(tower.x - cx, tower.y - cy);
           if (d > supportSpec.supportAura.radius) continue;
           coveredCount += 1;
+          const currentBuff = mergedSupportBuffWithCaps(tower.activeSupportBuff, null);
+          const plusBuff = mergedSupportBuffWithCaps(tower.activeSupportBuff, supportSpec.supportAura);
+          addedDps += Math.max(0, estimateTowerDpsWithBuff(tower, plusBuff) - estimateTowerDpsWithBuff(tower, currentBuff));
           ctx.strokeStyle = "rgba(141,255,185,0.18)";
           ctx.beginPath();
           ctx.moveTo(cx, cy);
@@ -230,13 +270,16 @@ function drawBackground() {
         ctx.strokeStyle = "rgba(141,255,185,0.35)";
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.roundRect(cx - 52, cy - supportSpec.supportAura.radius - 26, 104, 20, 8);
+        ctx.roundRect(cx - 76, cy - supportSpec.supportAura.radius - 42, 152, 36, 8);
         ctx.fill();
         ctx.stroke();
         ctx.fillStyle = "#cffff0";
         ctx.font = "bold 11px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText(`預估覆蓋 ${coveredCount} 座`, cx, cy - supportSpec.supportAura.radius - 12);
+        ctx.fillText(`預估覆蓋 ${coveredCount} 座`, cx, cy - supportSpec.supportAura.radius - 27);
+        ctx.font = "10px sans-serif";
+        ctx.fillStyle = "rgba(207,255,240,0.9)";
+        ctx.fillText(`新增DPS 約 +${Math.round(addedDps)}`, cx, cy - supportSpec.supportAura.radius - 14);
       }
       ctx.strokeStyle = valid ? "rgba(141,255,185,0.85)" : "rgba(255,123,123,0.85)";
       ctx.lineWidth = 2;
@@ -863,8 +906,12 @@ function drawOverlay() {
     ctx.fillStyle = "rgba(5, 24, 31, 0.78)";
     ctx.strokeStyle = boss.isAccelerated ? "rgba(255,123,123,0.65)" : boss.bossShieldHp > 0 ? "rgba(125,233,255,0.65)" : "rgba(255,209,102,0.45)";
     ctx.lineWidth = 1.5;
+    const historyItems = (game.bossSkillHistory ?? [])
+      .filter((item) => item.bossId === boss.id)
+      .slice(-3);
+    const panelHeight = historyItems.length ? 86 : 62;
     ctx.beginPath();
-    ctx.roundRect(canvas.width - 264, 14, 250, 62, 12);
+    ctx.roundRect(canvas.width - 264, 14, 250, panelHeight, 12);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = "#e7fbff";
@@ -875,24 +922,43 @@ function drawOverlay() {
     ctx.font = "11px sans-serif";
     ctx.fillText(`HP ${(hpRatio * 100).toFixed(0)}%｜盾 ${Math.max(0, boss.bossShieldHp).toFixed(0)}`, canvas.width - 252, 47);
     ctx.fillText(`下一技能：${nextHint}`, canvas.width - 252, 63);
+    if (historyItems.length) {
+      const historyText = historyItems.map((item) => `${item.icon ?? "•"}${item.label}`).join("  ");
+      ctx.fillStyle = "rgba(231, 251, 255, 0.82)";
+      ctx.font = "10px sans-serif";
+      ctx.fillText(`已觸發：${historyText}`, canvas.width - 252, 79);
+    }
   }
 
   if (game.displaySettings?.showPerfStats !== false) {
+    const spriteMode = game.displaySettings?.spriteQuality ?? "高";
+    const pressure = (game.fishes?.length ?? 0) + ((game.bullets?.length ?? 0) * 0.5) + ((game.particles?.length ?? 0) * 0.12);
+    const spriteActual = spriteMode !== "自動" ? spriteMode : (pressure > 85 ? "低" : "高");
+    if (spriteMode === "自動") {
+      if (autoSpriteActualLast == null) {
+        autoSpriteActualLast = spriteActual;
+      } else if (autoSpriteActualLast !== spriteActual) {
+        autoSpriteActualLast = spriteActual;
+        autoSpriteSwitchCount += 1;
+        autoSpriteLastSwitchAt = performance.now();
+      }
+    } else {
+      autoSpriteActualLast = null;
+    }
     ctx.fillStyle = "rgba(5, 24, 31, 0.78)";
     ctx.strokeStyle = "rgba(125, 233, 255, 0.2)";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.roundRect(14, canvas.height - 64, 238, 50, 10);
+    ctx.roundRect(14, canvas.height - 84, 238, 70, 10);
     ctx.fill();
     ctx.stroke();
-    const spriteMode = game.displaySettings?.spriteQuality ?? "高";
-    const pressure = (game.fishes?.length ?? 0) + ((game.bullets?.length ?? 0) * 0.5) + ((game.particles?.length ?? 0) * 0.12);
-    const spriteActual = spriteMode !== "自動" ? spriteMode : (pressure > 85 ? "低" : "高");
     ctx.fillStyle = "#cbeef4";
     ctx.font = "11px sans-serif";
     ctx.textAlign = "left";
-    ctx.fillText(`FPS ${perfFps || 0}｜魚 ${game.fishes.length}｜彈 ${game.bullets.length}｜粒子 ${game.particles.length}`, 24, canvas.height - 42);
-    ctx.fillText(`貼圖品質 ${spriteMode}${spriteMode === "自動" ? `→${spriteActual}` : ""}｜壓力 ${pressure.toFixed(0)}`, 24, canvas.height - 24);
+    ctx.fillText(`FPS ${perfFps || 0}｜魚 ${game.fishes.length}｜彈 ${game.bullets.length}｜粒子 ${game.particles.length}`, 24, canvas.height - 62);
+    ctx.fillText(`貼圖品質 ${spriteMode}${spriteMode === "自動" ? `→${spriteActual}` : ""}｜壓力 ${pressure.toFixed(0)}`, 24, canvas.height - 44);
+    const lastSwitchAgo = autoSpriteLastSwitchAt > 0 ? `${((performance.now() - autoSpriteLastSwitchAt) / 1000).toFixed(1)}s前` : "—";
+    ctx.fillText(`Auto切換 ${autoSpriteSwitchCount} 次｜最近 ${lastSwitchAgo}`, 24, canvas.height - 26);
   }
 
 }

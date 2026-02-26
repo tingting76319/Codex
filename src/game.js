@@ -218,6 +218,7 @@ const game = {
   hoverGridCell: null,
   lastMessage: "",
   bossAlert: { text: "", badge: "警報", timer: 0, total: 0 },
+  bossSkillHistory: [],
   stats: {
     towersPlaced: 0,
     towerUpgrades: 0,
