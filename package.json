@@ -1,6 +1,6 @@
 {
   "name": "fish-tower-defense",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Fish tower defense game with multiple fish sizes and species.",
   "main": "main.js",
   "scripts": {
