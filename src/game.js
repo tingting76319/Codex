@@ -119,11 +119,12 @@ function sanitizeProgress(raw) {
     if (Number.isFinite(n)) bestScores[k] = Math.max(0, Math.floor(n));
   }
   const uniqStrings = (arr) => [...new Set((Array.isArray(arr) ? arr : []).filter((x) => typeof x === "string"))];
+  const migrateFishId = (id) => (id === "tunaMedium" ? "oarfish" : id);
   return {
     stars,
     unlockedStages,
     bestScores,
-    seenFish: uniqStrings(obj.seenFish),
+    seenFish: uniqStrings(obj.seenFish).map(migrateFishId),
     seenTowers: uniqStrings(obj.seenTowers)
   };
 }
@@ -497,8 +498,9 @@ function fishPhotoUrl(fishId, fish) {
     whale: "./assets/fish-codex/whale-real.png",
     bossWhaleKing: "./assets/fish-codex/boss-whale-king-real.jpeg",
     tunaSmall: "./assets/fish-codex/tuna-real.png",
-    tunaMedium: "./assets/fish-codex/tuna-real.png",
+    oarfish: "./assets/fish-codex/oarfish-real.png",
     puffer: "./assets/fish-codex/puffer-real.png",
+    ray: "./assets/fish-codex/ray-real.png",
     swordfish: "./assets/fish-codex/swordfish-real.png"
   };
   if (explicit[fishId]) return explicit[fishId];
@@ -506,10 +508,21 @@ function fishPhotoUrl(fishId, fish) {
     "鯊魚": "./assets/fish-codex/shark-small.svg",
     "鯨魚": "./assets/fish-codex/whale.svg",
     "鮪魚": "./assets/fish-codex/tuna-medium.svg",
+    "皇帶魚": "./assets/fish-codex/oarfish-real.png",
     "河豚": "./assets/fish-codex/puffer.svg",
+    "魟魚": "./assets/fish-codex/ray-real.png",
     "旗魚": "./assets/fish-codex/swordfish.svg"
   };
   return bySpecies[fish?.species] ?? "./assets/fish-codex/fish-generic.svg";
+}
+
+function towerPhotoUrl(towerId) {
+  const map = {
+    basic: "./assets/tower-codex/basic-real.png",
+    slow: "./assets/tower-codex/slow-real.png",
+    splash: "./assets/tower-codex/splash-real.png"
+  };
+  return map[towerId] ?? null;
 }
 
 function getStagesContainingFish(targetFishId) {
@@ -877,13 +890,23 @@ function renderCodexLists() {
       if (tower.slow) traits.push(`緩速 ${Math.round((1 - tower.slow.multiplier) * 100)}%`);
       if (tower.splashRadius) traits.push(`範圍 ${tower.splashRadius}`);
       if (!traits.length) traits.push("單體輸出");
+      const towerPhoto = towerPhotoUrl(towerId);
       const item = document.createElement("button");
       item.type = "button";
       item.className = `menu-codex-item${isSeen ? "" : " is-unseen"}`;
       item.innerHTML = `
-        <div class="title"><span class="swatch" style="background:${isSeen ? (tower.color ?? "#5ad") : "#6a7f8a"}"></span>${isSeen ? tower.label : "未部署塔台"}</div>
-        <div class="meta">${isSeen ? `成本 ${tower.cost} · 傷害 ${tower.damage} · 射程 ${tower.range} · 攻速 ${tower.fireRate.toFixed(2)}s` : `代號 ${towerId}`}</div>
-        <div class="skills">定位：${isSeen ? traits.join(" / ") : "尚未部署"}</div>
+        <div class="codex-row">
+          <span class="codex-photo-wrap">
+            ${isSeen && towerPhoto
+              ? `<img class="codex-photo" src="${towerPhoto}" alt="${tower.label} 素材圖" loading="lazy" />`
+              : `<span class="codex-photo placeholder"></span>`}
+          </span>
+          <span class="codex-copy">
+            <div class="title"><span class="swatch" style="background:${isSeen ? (tower.color ?? "#5ad") : "#6a7f8a"}"></span>${isSeen ? tower.label : "未部署塔台"}</div>
+            <div class="meta">${isSeen ? `成本 ${tower.cost} · 傷害 ${tower.damage} · 射程 ${tower.range} · 攻速 ${tower.fireRate.toFixed(2)}s` : `代號 ${towerId}`}</div>
+            <div class="skills">定位：${isSeen ? traits.join(" / ") : "尚未部署"}</div>
+          </span>
+        </div>
       `;
       item.addEventListener("click", () => {
         if (!isSeen) {
@@ -909,6 +932,7 @@ function renderCodexLists() {
           title: tower.label,
           meta: `代號 ${towerId} · 成本 ${tower.cost}`,
           color: tower.color,
+          photoUrl: towerPhoto,
           previewStats: [`傷害 ${tower.damage}`, `射程 ${tower.range}`, `攻速 ${tower.fireRate.toFixed(2)}s`],
           rows
         });

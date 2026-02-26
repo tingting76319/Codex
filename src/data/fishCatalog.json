@@ -48,13 +48,13 @@
       {
         "type": "split_on_death",
         "count": 2,
-        "into": "tunaMedium",
+        "into": "oarfish",
         "hpScale": 0.9
       }
     ]
   },
   "tunaSmall": {
-    "label": "小鮪魚",
+    "label": "鮪魚",
     "species": "鮪魚",
     "sizeClass": "small",
     "color": "#4ce0d7",
@@ -71,9 +71,9 @@
       }
     ]
   },
-  "tunaMedium": {
-    "label": "中鮪魚",
-    "species": "鮪魚",
+  "oarfish": {
+    "label": "皇帶魚",
+    "species": "皇帶魚",
     "sizeClass": "medium",
     "color": "#3ebbb4",
     "hp": 62,
@@ -104,6 +104,23 @@
       {
         "type": "armor_static",
         "armorRatio": 0.6
+      }
+    ]
+  },
+  "ray": {
+    "label": "魟魚",
+    "species": "魟魚",
+    "sizeClass": "medium",
+    "color": "#7ac2d6",
+    "hp": 74,
+    "speed": 58,
+    "reward": 18,
+    "damage": 1,
+    "radius": 19,
+    "skills": [
+      {
+        "type": "armor_static",
+        "armorRatio": 0.85
       }
     ]
   },
@@ -143,7 +160,7 @@
         "speedMultiplier": 1.08,
         "packs": [
           { "kind": "swordfish", "count": 2 },
-          { "kind": "tunaMedium", "count": 2 },
+          { "kind": "oarfish", "count": 2 },
           { "kind": "puffer", "count": 1 }
         ]
       },

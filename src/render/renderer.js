@@ -258,6 +258,40 @@ function drawFish(fish) {
     ctx.lineTo(fish.radius * 0.48, -fish.radius * 0.15);
     ctx.closePath();
     ctx.fill();
+  } else if (fish.species === "皇帶魚") {
+    ctx.beginPath();
+    ctx.moveTo(fish.radius * 1.35, 0);
+    ctx.bezierCurveTo(fish.radius * 0.75, -fish.radius * 0.22, -fish.radius * 0.25, -fish.radius * 0.18, -fish.radius * 1.35, -fish.radius * 0.06);
+    ctx.lineTo(-fish.radius * 2.05, -fish.radius * 0.2 + tailWave);
+    ctx.lineTo(-fish.radius * 2.15, 0);
+    ctx.lineTo(-fish.radius * 2.05, fish.radius * 0.2 - tailWave);
+    ctx.lineTo(-fish.radius * 1.35, fish.radius * 0.06);
+    ctx.bezierCurveTo(-fish.radius * 0.25, fish.radius * 0.18, fish.radius * 0.75, fish.radius * 0.22, fish.radius * 1.35, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(255, 123, 123, 0.7)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-fish.radius * 1.25, -fish.radius * 0.02);
+    ctx.quadraticCurveTo(-fish.radius * 0.25, -fish.radius * 0.42, fish.radius * 0.55, -fish.radius * 0.2);
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(240,250,255,0.28)";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-fish.radius * 1.2, 0);
+    ctx.quadraticCurveTo(-fish.radius * 0.1, 0.02 * fish.radius, fish.radius * 1.02, 0.03 * fish.radius);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(255,255,255,0.14)";
+    ctx.beginPath();
+    ctx.moveTo(fish.radius * 0.25, -fish.radius * 0.08);
+    ctx.lineTo(fish.radius * 0.5, -fish.radius * 0.48);
+    ctx.lineTo(fish.radius * 0.72, -fish.radius * 0.08);
+    ctx.closePath();
+    ctx.fill();
   } else if (fish.species === "河豚") {
     const puffGrad = ctx.createRadialGradient(-fish.radius * 0.15, -fish.radius * 0.1, fish.radius * 0.15, 0, 0, fish.radius * 1.15);
     puffGrad.addColorStop(0, "rgba(255,255,255,0.35)");
@@ -284,6 +318,38 @@ function drawFish(fish) {
     ctx.beginPath();
     ctx.arc(fish.radius * 0.18, -fish.radius * 0.18, fish.radius * 0.28, 0, Math.PI * 2);
     ctx.fill();
+  } else if (fish.species === "魟魚") {
+    ctx.beginPath();
+    ctx.moveTo(fish.radius * 1.05, 0);
+    ctx.quadraticCurveTo(fish.radius * 0.35, -fish.radius * 0.92, -fish.radius * 0.95, -fish.radius * 0.42);
+    ctx.quadraticCurveTo(-fish.radius * 1.15, -fish.radius * 0.18, -fish.radius * 1.28, 0);
+    ctx.quadraticCurveTo(-fish.radius * 1.15, fish.radius * 0.18, -fish.radius * 0.95, fish.radius * 0.42);
+    ctx.quadraticCurveTo(fish.radius * 0.35, fish.radius * 0.92, fish.radius * 1.05, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(235,248,255,0.28)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-fish.radius * 0.8, 0);
+    ctx.quadraticCurveTo(fish.radius * 0.05, 0, fish.radius * 0.92, 0);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-fish.radius * 0.72, -fish.radius * 0.18);
+    ctx.quadraticCurveTo(fish.radius * 0.02, -fish.radius * 0.1, fish.radius * 0.72, -fish.radius * 0.08);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-fish.radius * 0.72, fish.radius * 0.18);
+    ctx.quadraticCurveTo(fish.radius * 0.02, fish.radius * 0.1, fish.radius * 0.72, fish.radius * 0.08);
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(180, 240, 255, 0.45)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-fish.radius * 1.18, 0);
+    ctx.lineTo(-fish.radius * 1.85, tailWave * 1.6);
+    ctx.stroke();
   } else if (fish.species === "旗魚") {
     ctx.beginPath();
     ctx.moveTo(fish.radius * 1.55, -fish.radius * 0.03);

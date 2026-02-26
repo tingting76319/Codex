@@ -19,15 +19,16 @@
     "extraRules": [
       { "kind": "sharkLarge", "count": { "base": 2 } },
       { "kind": "swordfish", "count": { "base": 5 } },
-      { "kind": "tunaMedium", "count": { "base": 3 } }
+      { "kind": "oarfish", "count": { "base": 3 } }
     ]
   },
   "rules": [
     { "kind": "tunaSmall", "unlockWave": 1, "count": { "base": 5, "terms": [{ "type": "mul", "value": "wave", "factor": 1 }] } },
     { "kind": "puffer", "unlockWave": 1, "count": { "base": 2, "terms": [{ "type": "floorDiv", "value": "wave", "divisor": 2 }] } },
-    { "kind": "tunaMedium", "unlockWave": 2, "count": { "base": 3, "terms": [{ "type": "mul", "value": "wave", "factor": 1 }] } },
+    { "kind": "oarfish", "unlockWave": 2, "count": { "base": 3, "terms": [{ "type": "mul", "value": "wave", "factor": 1 }] } },
     { "kind": "sharkSmall", "unlockWave": 2, "count": { "base": 2, "terms": [{ "type": "floorDiv", "value": "wave", "divisor": 2 }] } },
     { "kind": "swordfish", "unlockWave": 3, "count": { "base": 3, "terms": [{ "type": "mul", "value": "wave", "factor": 1 }] } },
+    { "kind": "ray", "unlockWave": 4, "count": { "base": 1, "terms": [{ "type": "floorDiv", "value": "wave", "divisor": 2 }] } },
     { "kind": "sharkLarge", "unlockWave": 5, "count": { "base": 1, "terms": [{ "type": "floorDiv", "value": "wave", "divisor": 2 }] } },
     { "kind": "whale", "unlockWave": 7, "count": { "base": 1, "terms": [{ "type": "floorDiv", "value": "waveMinus", "minus": 6, "divisor": 4 }] } }
   ]

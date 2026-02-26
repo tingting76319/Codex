@@ -157,7 +157,7 @@ function applyBurnToFish(fish, burn) {
   function spawnBossSummons(boss) {
   const spawns = boss.bossSummonPacks ?? [
     { kind: "swordfish", count: 2 },
-    { kind: "tunaMedium", count: 2 },
+    { kind: "oarfish", count: 2 },
     { kind: "puffer", count: 1 }
   ];
   const speedMultiplier = boss.bossSummonSpeedMultiplier ?? 1.08;

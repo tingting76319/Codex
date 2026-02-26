@@ -47,7 +47,7 @@
       }
     },
     {
-      "kind": "tunaMedium",
+      "kind": "oarfish",
       "unlockWave": 2,
       "count": {
         "base": 3,
@@ -73,6 +73,16 @@
         "base": 2,
         "terms": [
           { "type": "mul", "value": "wave", "factor": 1 }
+        ]
+      }
+    },
+    {
+      "kind": "ray",
+      "unlockWave": 4,
+      "count": {
+        "base": 1,
+        "terms": [
+          { "type": "floorDiv", "value": "wave", "divisor": 3 }
         ]
       }
     },
