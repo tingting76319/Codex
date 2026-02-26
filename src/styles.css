@@ -734,6 +734,30 @@ button.is-active {
   font-size: 13px;
 }
 
+#clearConditionLabel {
+  line-height: 1.45;
+  color: #dff7ff;
+  border-left: 3px solid rgba(125, 233, 255, 0.45);
+  padding-left: 8px;
+  background: rgba(125, 233, 255, 0.04);
+  border-radius: 6px;
+  word-break: break-word;
+}
+
+#openMenuBtn {
+  border-color: rgba(125, 233, 255, 0.3);
+}
+
+#openSaveBtn {
+  border-color: rgba(255, 209, 102, 0.35);
+  background: linear-gradient(135deg, rgba(255, 209, 102, 0.12), rgba(255, 209, 102, 0.04));
+}
+
+#openSaveBtn:hover {
+  border-color: rgba(255, 209, 102, 0.55);
+  background: linear-gradient(135deg, rgba(255, 209, 102, 0.2), rgba(255, 209, 102, 0.08));
+}
+
 .tower-info-panel {
   border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.06);

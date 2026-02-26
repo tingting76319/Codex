@@ -358,6 +358,40 @@ function stageClearConditionText(stage) {
   return stageClearConditionLines(stage).join("｜");
 }
 
+function stageConditionProgressSegments(stage) {
+  if (!stage || stage.id.startsWith("endless")) {
+    return [`波次 ${game.wave}`, `擊殺 ${game.kills}`, "無盡模式"];
+  }
+  const segs = [`波次 ${Math.min(game.wave, stage.wavePlan?.maxWaves ?? game.wave)}/${stage.wavePlan?.maxWaves ?? "?"}`];
+  for (const cond of stage.wavePlan?.clearConditions ?? []) {
+    if (cond.type === "minLives") {
+      const ok = game.lives >= cond.value;
+      segs.push(`生命 ${game.lives}/${cond.value}${ok ? "✓" : ""}`);
+    } else if (cond.type === "minKills") {
+      const ok = game.kills >= cond.value;
+      segs.push(`擊殺 ${game.kills}/${cond.value}${ok ? "✓" : ""}`);
+    } else if (cond.type === "maxLeaks") {
+      const leaks = Math.max(0, game.maxLives - game.lives);
+      const ok = leaks <= cond.value;
+      segs.push(`漏怪 ${leaks}/${cond.value}${ok ? "✓" : ""}`);
+    } else if (cond.type === "maxTowersPlaced") {
+      const placed = game.stats.towersPlaced;
+      const ok = placed <= cond.value;
+      segs.push(`建塔 ${placed}/${cond.value}${ok ? "✓" : ""}`);
+    }
+  }
+  return segs;
+}
+
+function updateHudClearConditionLabel() {
+  if (!hud.clearConditionLabel) return;
+  const stageForRule = stageCatalog[pendingStageId];
+  const stageForProgress = game.inMainMenu ? stageForRule : (stageCatalog[game.stageId] ?? stageForRule);
+  const ruleText = stageClearConditionText(stageForRule);
+  const progressText = stageConditionProgressSegments(stageForProgress).join("｜");
+  hud.clearConditionLabel.textContent = `過關條件：${ruleText}｜進度：${progressText}`;
+}
+
 function evaluateStageClearConditions(stage) {
   if (!stage || stage.id.startsWith("endless")) {
     return { ok: true, reason: "", message: `關卡完成！已通關 ${stage?.label ?? "本關卡"}。` };
@@ -572,10 +606,7 @@ function syncSelectorValues() {
 function updatePendingLabels() {
   if (hud.mapLabel) hud.mapLabel.textContent = mapCatalog[pendingMapId]?.name ?? pendingMapId;
   if (hud.stageLabel) hud.stageLabel.textContent = stageCatalog[pendingStageId]?.label ?? pendingStageId;
-  if (hud.clearConditionLabel) {
-    const stage = stageCatalog[pendingStageId];
-    hud.clearConditionLabel.textContent = `過關條件：${stageClearConditionText(stage)}`;
-  }
+  updateHudClearConditionLabel();
   if (menu.currentMapLabel) menu.currentMapLabel.textContent = mapCatalog[pendingMapId]?.name ?? pendingMapId;
   if (menu.currentStageLabel) menu.currentStageLabel.textContent = stageCatalog[pendingStageId]?.label ?? pendingStageId;
   if (menu.stageSelectionText) {
@@ -985,6 +1016,7 @@ function openMainMenu() {
   updatePendingLabels();
   syncMenuSettingsUi();
   updateHud();
+  updateHudClearConditionLabel();
 }
 
 function closeMainMenu() {
@@ -994,12 +1026,13 @@ function closeMainMenu() {
   menu.overlay?.classList.add("is-hidden");
   hideResultOverlay();
   updateHud();
+  updateHudClearConditionLabel();
 }
 
 function openSavePanelFromHud() {
   openMainMenu();
-  setMenuPanel("home");
-  menu.saveSlot?.focus();
+  setMenuPanel("settings");
+  menu.saveSlotMirror?.focus();
   setMessage("已開啟主選單存檔區，可切換或重設存檔槽。");
 }
 
@@ -1349,6 +1382,7 @@ function loop(ts) {
         openResultOverlay({ victory: false });
       }
       updateHud();
+      updateHudClearConditionLabel();
     }
 
     updateBossAlert(rawDt);
@@ -1388,6 +1422,7 @@ function loop(ts) {
 try {
   updateHud();
   updateAudioHud();
+  updateHudClearConditionLabel();
   openMainMenu();
   setMessage("請先在主畫面選擇地圖與關卡，再開始遊戲。");
   requestAnimationFrame(loop);
