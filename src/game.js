@@ -490,6 +490,28 @@ function describeSkill(skill) {
   }
 }
 
+function fishPhotoUrl(fishId, fish) {
+  const explicit = {
+    sharkSmall: "https://source.unsplash.com/featured/640x360/?shark,fish,ocean",
+    sharkLarge: "https://source.unsplash.com/featured/640x360/?great-white-shark",
+    whale: "https://source.unsplash.com/featured/640x360/?whale,ocean",
+    bossWhaleKing: "https://source.unsplash.com/featured/640x360/?blue-whale",
+    tunaSmall: "https://source.unsplash.com/featured/640x360/?tuna,fish",
+    tunaMedium: "https://source.unsplash.com/featured/640x360/?tuna,school,fish",
+    puffer: "https://source.unsplash.com/featured/640x360/?pufferfish",
+    swordfish: "https://source.unsplash.com/featured/640x360/?sailfish"
+  };
+  if (explicit[fishId]) return explicit[fishId];
+  const speciesQuery = {
+    "鯊魚": "shark",
+    "鯨魚": "whale",
+    "鮪魚": "tuna",
+    "河豚": "pufferfish",
+    "旗魚": "sailfish"
+  }[fish?.species] ?? "fish";
+  return `https://source.unsplash.com/featured/640x360/?${encodeURIComponent(speciesQuery)},ocean`;
+}
+
 function getStagesContainingFish(targetFishId) {
   const result = [];
   for (const stage of Object.values(stageCatalog)) {
@@ -729,11 +751,19 @@ function openCodexDetail(detail) {
   if (menu.detailPreview) {
     const color = detail.color ?? "#7fb0ff";
     const previewStats = detail.previewStats ?? [];
-    menu.detailPreview.innerHTML = `
-      <div class="sprite" style="--preview-color:${color}"></div>
-      <div class="trail"></div>
-      <div class="hud">${previewStats.map((s) => `<div>${s}</div>`).join("")}</div>
-    `;
+    if (detail.photoUrl) {
+      menu.detailPreview.innerHTML = `
+        <img class="photo" src="${detail.photoUrl}" alt="${detail.title} 真實照片" loading="lazy" referrerpolicy="no-referrer" />
+        <div class="photo-vignette"></div>
+        <div class="hud">${previewStats.map((s) => `<div>${s}</div>`).join("")}</div>
+      `;
+    } else {
+      menu.detailPreview.innerHTML = `
+        <div class="sprite" style="--preview-color:${color}"></div>
+        <div class="trail"></div>
+        <div class="hud">${previewStats.map((s) => `<div>${s}</div>`).join("")}</div>
+      `;
+    }
   }
   menu.detailBody.innerHTML = "";
   for (const line of detail.rows) {
@@ -779,10 +809,20 @@ function renderCodexLists() {
       item.type = "button";
       item.className = `menu-codex-item${isSeen ? "" : " is-unseen"}`;
       const skills = (fish.skills ?? []).map(skillLabel).join(" / ") || "無";
+      const photoUrl = fishPhotoUrl(fishId, fish);
       item.innerHTML = `
-        <div class="title"><span class="swatch" style="background:${isSeen ? (fish.color ?? "#88d") : "#6a7f8a"}"></span>${isSeen ? fish.label : "未遇見魚種"}</div>
-        <div class="meta">${isSeen ? `${fish.species} · ${fish.sizeClass} · HP ${fish.hp} · 速度 ${fish.speed}` : `${fish.species} · ${fish.sizeClass}`}</div>
-        <div class="skills">技能：${isSeen ? skills : "尚未觀測"}</div>
+        <div class="codex-row">
+          <span class="codex-photo-wrap">
+            ${isSeen
+              ? `<img class="codex-photo" src="${photoUrl}" alt="${fish.label} 真實照片" loading="lazy" referrerpolicy="no-referrer" />`
+              : `<span class="codex-photo placeholder"></span>`}
+          </span>
+          <span class="codex-copy">
+            <div class="title"><span class="swatch" style="background:${isSeen ? (fish.color ?? "#88d") : "#6a7f8a"}"></span>${isSeen ? fish.label : "未遇見魚種"}</div>
+            <div class="meta">${isSeen ? `${fish.species} · ${fish.sizeClass} · HP ${fish.hp} · 速度 ${fish.speed}` : `${fish.species} · ${fish.sizeClass}`}</div>
+            <div class="skills">技能：${isSeen ? skills : "尚未觀測"}</div>
+          </span>
+        </div>
       `;
       item.addEventListener("click", () => {
         if (!isSeen) {
@@ -802,6 +842,7 @@ function renderCodexLists() {
           title: fish.label,
           meta: `${fish.species} · ${fish.sizeClass} · HP ${fish.hp} · 速度 ${fish.speed} · 獎勵 ${fish.reward}`,
           color: fish.color,
+          photoUrl,
           previewStats: [`體型 ${fish.sizeClass}`, `攻擊 ${fish.damage}`, `獎勵 ${fish.reward}`],
           rows: [
             `技能：${(fish.skills ?? []).map(describeSkill).join("；") || "無"}`,
@@ -1022,6 +1063,7 @@ function renderMenuStageCards() {
           ${isLocked ? '<span class="tag">未解鎖</span>' : ""}
         </span>
         <span class="meta">${clearCond}</span>
+        <span class="condition-line">條件：${clearCond}</span>
         <span class="stars">${stars}</span>
       </span>
     `;
