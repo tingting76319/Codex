@@ -27,7 +27,8 @@ const DEFAULT_SETTINGS = {
   showDamageText: true,
   fxDensity: "中",
   spriteQuality: "高",
-  showTowerPanel: true
+  showTowerPanel: true,
+  showPerfStats: true
 };
 
 const DEFAULT_PROGRESS = {
@@ -98,7 +99,8 @@ function sanitizeSettings(raw) {
     showDamageText: obj.showDamageText !== false,
     fxDensity: ["低", "中", "高"].includes(obj.fxDensity) ? obj.fxDensity : DEFAULT_SETTINGS.fxDensity,
     spriteQuality: ["低", "自動", "高"].includes(obj.spriteQuality) ? obj.spriteQuality : DEFAULT_SETTINGS.spriteQuality,
-    showTowerPanel: obj.showTowerPanel !== false
+    showTowerPanel: obj.showTowerPanel !== false,
+    showPerfStats: obj.showPerfStats !== false
   };
 }
 
@@ -227,7 +229,8 @@ const game = {
     showDamageText: savedSettings.showDamageText !== false,
     fxDensity: ["低", "中", "高"].includes(savedSettings.fxDensity) ? savedSettings.fxDensity : "中",
     spriteQuality: ["低", "自動", "高"].includes(savedSettings.spriteQuality) ? savedSettings.spriteQuality : "高",
-    showTowerPanel: savedSettings.showTowerPanel !== false
+    showTowerPanel: savedSettings.showTowerPanel !== false,
+    showPerfStats: savedSettings.showPerfStats !== false
   }
 };
 
@@ -911,6 +914,7 @@ function syncMenuSettingsUi() {
   if (menu.fxDensity) menu.fxDensity.value = game.displaySettings.fxDensity;
   if (menu.spriteQuality) menu.spriteQuality.value = game.displaySettings.spriteQuality;
   if (menu.showTowerPanel) menu.showTowerPanel.checked = game.displaySettings.showTowerPanel;
+  if (menu.showPerfStats) menu.showPerfStats.checked = game.displaySettings.showPerfStats;
   if (menu.saveSlot) menu.saveSlot.value = game.currentSaveSlot;
   if (menu.saveSlotMirror) menu.saveSlotMirror.value = game.currentSaveSlot;
 }
@@ -923,7 +927,8 @@ function persistSettings() {
     showDamageText: game.displaySettings.showDamageText,
     fxDensity: game.displaySettings.fxDensity,
     spriteQuality: game.displaySettings.spriteQuality,
-    showTowerPanel: game.displaySettings.showTowerPanel
+    showTowerPanel: game.displaySettings.showTowerPanel,
+    showPerfStats: game.displaySettings.showPerfStats
   });
 }
 
@@ -1637,6 +1642,11 @@ menu.showTowerPanel?.addEventListener("change", () => {
   syncMenuSettingsUi();
   refreshTowerInfoPanel();
 });
+menu.showPerfStats?.addEventListener("change", () => {
+  game.displaySettings.showPerfStats = Boolean(menu.showPerfStats.checked);
+  persistSettings();
+  syncMenuSettingsUi();
+});
 menu.resetSettingsBtn?.addEventListener("click", () => {
   game.audioMuted = false;
   game.bgmVolume = 0.45;
@@ -1645,6 +1655,7 @@ menu.resetSettingsBtn?.addEventListener("click", () => {
   game.displaySettings.fxDensity = "中";
   game.displaySettings.spriteQuality = "高";
   game.displaySettings.showTowerPanel = true;
+  game.displaySettings.showPerfStats = true;
   if (hud.bgmVolume) hud.bgmVolume.value = "45";
   if (hud.sfxVolume) hud.sfxVolume.value = "70";
   applyAudioVolumes();
@@ -1818,6 +1829,7 @@ try {
     game.displaySettings.fxDensity = nativeSettings.fxDensity;
     game.displaySettings.spriteQuality = nativeSettings.spriteQuality;
     game.displaySettings.showTowerPanel = nativeSettings.showTowerPanel;
+    game.displaySettings.showPerfStats = nativeSettings.showPerfStats;
     if (hud.bgmVolume) hud.bgmVolume.value = String(Math.round(game.bgmVolume * 100));
     if (hud.sfxVolume) hud.sfxVolume.value = String(Math.round(game.sfxVolume * 100));
     applyAudioVolumes();

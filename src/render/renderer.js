@@ -203,6 +203,7 @@ function drawBackground() {
       const cx = px + GRID.size / 2;
       const cy = py + GRID.size / 2;
       if (valid && supportSpec?.supportAura?.radius) {
+        let coveredCount = 0;
         ctx.strokeStyle = "rgba(141,255,185,0.28)";
         ctx.lineWidth = 1.4;
         ctx.setLineDash([5, 6]);
@@ -214,6 +215,7 @@ function drawBackground() {
           if (tower.typeKey === "support") continue;
           const d = Math.hypot(tower.x - cx, tower.y - cy);
           if (d > supportSpec.supportAura.radius) continue;
+          coveredCount += 1;
           ctx.strokeStyle = "rgba(141,255,185,0.18)";
           ctx.beginPath();
           ctx.moveTo(cx, cy);
@@ -224,6 +226,17 @@ function drawBackground() {
           ctx.arc(tower.x, tower.y, 22, 0, Math.PI * 2);
           ctx.fill();
         }
+        ctx.fillStyle = "rgba(5,24,31,0.82)";
+        ctx.strokeStyle = "rgba(141,255,185,0.35)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(cx - 52, cy - supportSpec.supportAura.radius - 26, 104, 20, 8);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#cffff0";
+        ctx.font = "bold 11px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(`預估覆蓋 ${coveredCount} 座`, cx, cy - supportSpec.supportAura.radius - 12);
       }
       ctx.strokeStyle = valid ? "rgba(141,255,185,0.85)" : "rgba(255,123,123,0.85)";
       ctx.lineWidth = 2;
@@ -838,37 +851,49 @@ function drawOverlay() {
   if (boss) {
     const hpRatio = boss.maxHp > 0 ? boss.hp / boss.maxHp : 1;
     const phase = boss.isAccelerated ? "Phase 3 狂暴" : (boss.bossShieldHp > 0 ? "Phase 2 護盾" : hpRatio < 0.66 ? "Phase 2 交戰" : "Phase 1");
+    const nextSummon = boss.bossSummonThresholds?.length ? boss.bossSummonThresholds[0] : null;
+    const nextShield = boss.bossShieldThresholds?.length ? boss.bossShieldThresholds[0] : null;
+    const nextRage = (!boss.isAccelerated && boss.accelerationSkill?.triggerHpRatio != null) ? boss.accelerationSkill.triggerHpRatio : null;
+    const hints = [
+      nextShield != null ? `護盾@${Math.round(nextShield * 100)}%` : null,
+      nextSummon != null ? `召喚@${Math.round(nextSummon * 100)}%` : null,
+      nextRage != null ? `狂暴@${Math.round(nextRage * 100)}%` : null
+    ].filter(Boolean);
+    const nextHint = hints[0] ?? "已觸發完畢";
     ctx.fillStyle = "rgba(5, 24, 31, 0.78)";
     ctx.strokeStyle = boss.isAccelerated ? "rgba(255,123,123,0.65)" : boss.bossShieldHp > 0 ? "rgba(125,233,255,0.65)" : "rgba(255,209,102,0.45)";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.roundRect(canvas.width - 220, 14, 206, 46, 12);
+    ctx.roundRect(canvas.width - 264, 14, 250, 62, 12);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = "#e7fbff";
     ctx.font = "bold 12px sans-serif";
     ctx.textAlign = "left";
-    ctx.fillText(`Boss 階段：${phase}`, canvas.width - 208, 34);
+    ctx.fillText(`Boss 階段：${phase}`, canvas.width - 252, 32);
     ctx.fillStyle = "rgba(203, 238, 244, 0.95)";
     ctx.font = "11px sans-serif";
-    ctx.fillText(`HP ${(hpRatio * 100).toFixed(0)}%｜盾 ${Math.max(0, boss.bossShieldHp).toFixed(0)}`, canvas.width - 208, 51);
+    ctx.fillText(`HP ${(hpRatio * 100).toFixed(0)}%｜盾 ${Math.max(0, boss.bossShieldHp).toFixed(0)}`, canvas.width - 252, 47);
+    ctx.fillText(`下一技能：${nextHint}`, canvas.width - 252, 63);
   }
 
-  ctx.fillStyle = "rgba(5, 24, 31, 0.78)";
-  ctx.strokeStyle = "rgba(125, 233, 255, 0.2)";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.roundRect(14, canvas.height - 64, 238, 50, 10);
-  ctx.fill();
-  ctx.stroke();
-  const spriteMode = game.displaySettings?.spriteQuality ?? "高";
-  const pressure = (game.fishes?.length ?? 0) + ((game.bullets?.length ?? 0) * 0.5) + ((game.particles?.length ?? 0) * 0.12);
-  const spriteActual = spriteMode !== "自動" ? spriteMode : (pressure > 85 ? "低" : "高");
-  ctx.fillStyle = "#cbeef4";
-  ctx.font = "11px sans-serif";
-  ctx.textAlign = "left";
-  ctx.fillText(`FPS ${perfFps || 0}｜魚 ${game.fishes.length}｜彈 ${game.bullets.length}｜粒子 ${game.particles.length}`, 24, canvas.height - 42);
-  ctx.fillText(`貼圖品質 ${spriteMode}${spriteMode === "自動" ? `→${spriteActual}` : ""}｜壓力 ${pressure.toFixed(0)}`, 24, canvas.height - 24);
+  if (game.displaySettings?.showPerfStats !== false) {
+    ctx.fillStyle = "rgba(5, 24, 31, 0.78)";
+    ctx.strokeStyle = "rgba(125, 233, 255, 0.2)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(14, canvas.height - 64, 238, 50, 10);
+    ctx.fill();
+    ctx.stroke();
+    const spriteMode = game.displaySettings?.spriteQuality ?? "高";
+    const pressure = (game.fishes?.length ?? 0) + ((game.bullets?.length ?? 0) * 0.5) + ((game.particles?.length ?? 0) * 0.12);
+    const spriteActual = spriteMode !== "自動" ? spriteMode : (pressure > 85 ? "低" : "高");
+    ctx.fillStyle = "#cbeef4";
+    ctx.font = "11px sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText(`FPS ${perfFps || 0}｜魚 ${game.fishes.length}｜彈 ${game.bullets.length}｜粒子 ${game.particles.length}`, 24, canvas.height - 42);
+    ctx.fillText(`貼圖品質 ${spriteMode}${spriteMode === "自動" ? `→${spriteActual}` : ""}｜壓力 ${pressure.toFixed(0)}`, 24, canvas.height - 24);
+  }
 
 }
 

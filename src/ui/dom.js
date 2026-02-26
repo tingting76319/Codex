@@ -82,6 +82,7 @@ export const menu = {
   fxDensity: document.getElementById("menuFxDensity"),
   spriteQuality: document.getElementById("menuSpriteQuality"),
   showTowerPanel: document.getElementById("menuShowTowerPanel"),
+  showPerfStats: document.getElementById("menuShowPerfStats"),
   resetSettingsBtn: document.getElementById("menuResetSettingsBtn"),
   codexSearch: document.getElementById("menuCodexSearch"),
   codexTypeFilter: document.getElementById("menuCodexTypeFilter"),
