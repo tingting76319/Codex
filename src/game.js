@@ -414,6 +414,13 @@ function stageConditionProgressSegments(stage) {
   });
 }
 
+function effectiveSpriteQualityLabel() {
+  const mode = game.displaySettings?.spriteQuality ?? "高";
+  if (mode !== "自動") return mode;
+  const pressure = (game.fishes?.length ?? 0) + ((game.bullets?.length ?? 0) * 0.5) + ((game.particles?.length ?? 0) * 0.12);
+  return pressure > 85 ? "低" : "高";
+}
+
 function updateHudClearConditionLabel() {
   if (!hud.clearConditionLabel) return;
   const stageForRule = stageCatalog[pendingStageId];
@@ -424,7 +431,11 @@ function updateHudClearConditionLabel() {
     const cls = s.ok ? "is-ok" : (s.kind === "max" && Number(s.current) > Number(s.target) ? "is-bad" : "");
     const value = s.target == null ? `${s.current}` : `${s.current}/${s.target}`;
     return `<span class="condition-chip ${cls}"><em>${s.label}</em><strong>${value}</strong></span>`;
-  }).join("");
+  });
+  const spriteMode = game.displaySettings?.spriteQuality ?? "高";
+  const spriteActual = effectiveSpriteQualityLabel();
+  const spriteText = spriteMode === "自動" ? `貼圖 自動→${spriteActual}` : `貼圖 ${spriteMode}`;
+  chips.push(`<span class="condition-chip"><em>畫質</em><strong>${spriteText}</strong></span>`);
   hud.clearConditionLabel.innerHTML = `<span class="prefix">過關條件</span><span class="rules">${ruleText}</span><span class="progress">${chips}</span>`;
 }
 
@@ -624,6 +635,23 @@ function supportCoverageSummary(tower, allTowers) {
   return `${covered.length} 座塔台在光環範圍內`;
 }
 
+function supportUncoveredPrioritySummary(tower, allTowers) {
+  if (tower?.typeKey !== "support") return "";
+  const radius = tower.supportAura?.radius ?? 0;
+  const candidates = (allTowers ?? [])
+    .filter((t) => t.id !== tower.id && t.typeKey !== "support")
+    .map((t) => ({
+      tower: t,
+      dist: Math.hypot((t.x ?? 0) - (tower.x ?? 0), (t.y ?? 0) - (tower.y ?? 0)),
+      score: (t.level ?? 1) * 100 + (t.typeKey === "sniper" ? 25 : t.typeKey === "splash" ? 18 : 0)
+    }))
+    .filter((x) => x.dist > radius)
+    .sort((a, b) => b.score - a.score || a.dist - b.dist)
+    .slice(0, 2);
+  if (!candidates.length) return "無";
+  return candidates.map(({ tower: t }) => `${t.typeLabel}(Lv${t.level})`).join("、");
+}
+
 function getStagesContainingFish(targetFishId) {
   const result = [];
   for (const stage of Object.values(stageCatalog)) {
@@ -740,6 +768,7 @@ function refreshTowerInfoPanel() {
       rows.push(["增益光環", `半徑 ${Math.round(tower.supportAura.radius)}｜傷害 x${(tower.supportAura.damageMult ?? 1).toFixed(2)}`]);
       rows.push(["輔助效果", `攻速 x${(tower.supportAura.fireRateMult ?? 1).toFixed(2)}｜射程 +${Math.round(tower.supportAura.rangeBonus ?? 0)}`]);
       rows.push(["覆蓋狀態", supportCoverageSummary(tower, game.towers)]);
+      rows.push(["未覆蓋要塔", supportUncoveredPrioritySummary(tower, game.towers)]);
     } else {
       rows.push(["支援加成", describeActiveSupportBuff(tower.activeSupportBuff)]);
       rows.push(["支援來源", describeSupportSources(tower)]);

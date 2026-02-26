@@ -74,7 +74,12 @@ function drawFishSpriteIfAvailable(fish) {
   ctx.drawImage(img, -width / 2, -height / 2, width, height);
   if (glow > 0) {
     ctx.globalCompositeOperation = "screen";
-    ctx.fillStyle = fish.isBoss ? `rgba(255,209,102,${glow.toFixed(3)})` : `rgba(255,255,255,${glow.toFixed(3)})`;
+    const bossGlowColor = fish.isBoss
+      ? (fish.bossShieldHp > 0 ? `rgba(125,233,255,${(glow * 1.25).toFixed(3)})`
+        : fish.isAccelerated ? `rgba(255,123,123,${(glow * 1.2).toFixed(3)})`
+          : `rgba(255,209,102,${glow.toFixed(3)})`)
+      : `rgba(255,255,255,${glow.toFixed(3)})`;
+    ctx.fillStyle = bossGlowColor;
     if (isRay) {
       ctx.beginPath();
       ctx.ellipse(0, 0, width * 0.42, height * 0.42, 0, 0, Math.PI * 2);

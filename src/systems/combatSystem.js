@@ -452,8 +452,9 @@ function updateFishes(dt) {
             color: "rgba(255,123,123,0.95)",
             ringRadius: (fish.radius ?? 30) + 22
           });
-          setMessage(`${fish.label} 進入狂暴階段！`);
-          showBossAlert?.("Boss 進入狂暴階段", { badge: "狂暴", duration: 2.4 });
+          setMessage(`${fish.label} 進入狂暴階段！速度提升 x${(fish.accelerationSkill.multiplier ?? 1).toFixed(2)}`);
+          playSfx("bossAlarm");
+          showBossAlert?.(`Boss 進入狂暴階段（x${(fish.accelerationSkill.multiplier ?? 1).toFixed(2)}）`, { badge: "狂暴", duration: 2.6 });
         }
       }
     }
