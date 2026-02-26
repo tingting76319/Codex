@@ -15,6 +15,8 @@ export const hud = {
   waveBtn: document.getElementById("waveBtn"),
   pauseBtn: document.getElementById("pauseBtn"),
   speedBtn: document.getElementById("speedBtn"),
+  openMenuBtn: document.getElementById("openMenuBtn"),
+  openSaveBtn: document.getElementById("openSaveBtn"),
   muteBtn: document.getElementById("muteBtn"),
   bgmVolume: document.getElementById("bgmVolume"),
   sfxVolume: document.getElementById("sfxVolume"),
@@ -26,7 +28,8 @@ export const hud = {
   towerInfoPanel: document.getElementById("towerInfoPanel"),
   towerInfoTitle: document.getElementById("towerInfoTitle"),
   towerInfoMeta: document.getElementById("towerInfoMeta"),
-  towerInfoStats: document.getElementById("towerInfoStats")
+  towerInfoStats: document.getElementById("towerInfoStats"),
+  clearConditionLabel: document.getElementById("clearConditionLabel")
 };
 
 export const menu = {

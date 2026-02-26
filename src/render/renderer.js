@@ -142,8 +142,17 @@ function drawFish(fish) {
   const next = pathPoints[Math.min(fish.pathIndex + 1, pathPoints.length - 1)];
   const angle = Math.atan2(next.y - fish.y, next.x - fish.x);
   ctx.rotate(angle);
+  const swimPhase = (performance.now() * 0.006) + (fish.id || 0) * 0.73;
+  const tailWave = Math.sin(swimPhase) * fish.radius * 0.06;
+  const bodyBob = Math.cos(swimPhase * 0.6) * fish.radius * 0.02;
+  ctx.translate(0, bodyBob);
   ctx.lineWidth = 1.3;
   ctx.strokeStyle = "rgba(255,255,255,0.2)";
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.18)";
+  ctx.beginPath();
+  ctx.ellipse(-fish.radius * 0.18, fish.radius * 0.34, fish.radius * 1.35, fish.radius * 0.45, 0, 0, Math.PI * 2);
+  ctx.fill();
 
   const bodyGrad = ctx.createLinearGradient(-fish.radius * 1.6, -fish.radius, fish.radius * 1.2, fish.radius);
   bodyGrad.addColorStop(0, "rgba(255,255,255,0.18)");
@@ -155,9 +164,9 @@ function drawFish(fish) {
     ctx.beginPath();
     ctx.moveTo(fish.radius * 1.15, 0);
     ctx.bezierCurveTo(fish.radius * 0.6, -fish.radius * 0.72, -fish.radius * 0.65, -fish.radius * 0.62, -fish.radius * 1.25, -fish.radius * 0.12);
-    ctx.lineTo(-fish.radius * 1.72, -fish.radius * 0.58);
+    ctx.lineTo(-fish.radius * 1.72, -fish.radius * 0.58 + tailWave);
     ctx.lineTo(-fish.radius * 1.55, -fish.radius * 0.02);
-    ctx.lineTo(-fish.radius * 1.8, fish.radius * 0.55);
+    ctx.lineTo(-fish.radius * 1.8, fish.radius * 0.55 - tailWave);
     ctx.lineTo(-fish.radius * 1.18, fish.radius * 0.15);
     ctx.bezierCurveTo(-fish.radius * 0.65, fish.radius * 0.62, fish.radius * 0.52, fish.radius * 0.62, fish.radius * 1.15, 0);
     ctx.closePath();
@@ -197,9 +206,9 @@ function drawFish(fish) {
     ctx.fillStyle = fish.color;
     ctx.beginPath();
     ctx.moveTo(-fish.radius * 1.45, -fish.radius * 0.12);
-    ctx.lineTo(-fish.radius * 2.05, -fish.radius * 0.75);
+    ctx.lineTo(-fish.radius * 2.05, -fish.radius * 0.75 + tailWave * 1.2);
     ctx.lineTo(-fish.radius * 1.78, -fish.radius * 0.06);
-    ctx.lineTo(-fish.radius * 2.05, fish.radius * 0.75);
+    ctx.lineTo(-fish.radius * 2.05, fish.radius * 0.75 - tailWave * 1.2);
     ctx.lineTo(-fish.radius * 1.45, fish.radius * 0.12);
     ctx.closePath();
     ctx.fill();
@@ -225,9 +234,9 @@ function drawFish(fish) {
     ctx.beginPath();
     ctx.moveTo(fish.radius * 1.2, 0);
     ctx.bezierCurveTo(fish.radius * 0.6, -fish.radius * 0.45, -fish.radius * 0.75, -fish.radius * 0.5, -fish.radius * 1.35, -fish.radius * 0.12);
-    ctx.lineTo(-fish.radius * 1.85, -fish.radius * 0.5);
+    ctx.lineTo(-fish.radius * 1.85, -fish.radius * 0.5 + tailWave);
     ctx.lineTo(-fish.radius * 1.58, 0);
-    ctx.lineTo(-fish.radius * 1.85, fish.radius * 0.5);
+    ctx.lineTo(-fish.radius * 1.85, fish.radius * 0.5 - tailWave);
     ctx.lineTo(-fish.radius * 1.35, fish.radius * 0.12);
     ctx.bezierCurveTo(-fish.radius * 0.75, fish.radius * 0.5, fish.radius * 0.6, fish.radius * 0.45, fish.radius * 1.2, 0);
     ctx.closePath();
@@ -280,9 +289,9 @@ function drawFish(fish) {
     ctx.moveTo(fish.radius * 1.55, -fish.radius * 0.03);
     ctx.lineTo(fish.radius * 0.95, -fish.radius * 0.08);
     ctx.bezierCurveTo(fish.radius * 0.55, -fish.radius * 0.55, -fish.radius * 0.65, -fish.radius * 0.48, -fish.radius * 1.28, -fish.radius * 0.1);
-    ctx.lineTo(-fish.radius * 1.72, -fish.radius * 0.52);
+    ctx.lineTo(-fish.radius * 1.72, -fish.radius * 0.52 + tailWave);
     ctx.lineTo(-fish.radius * 1.5, 0);
-    ctx.lineTo(-fish.radius * 1.72, fish.radius * 0.52);
+    ctx.lineTo(-fish.radius * 1.72, fish.radius * 0.52 - tailWave);
     ctx.lineTo(-fish.radius * 1.28, fish.radius * 0.1);
     ctx.bezierCurveTo(-fish.radius * 0.65, fish.radius * 0.48, fish.radius * 0.55, fish.radius * 0.55, fish.radius * 0.95, fish.radius * 0.08);
     ctx.closePath();
@@ -310,6 +319,24 @@ function drawFish(fish) {
     ctx.stroke();
   }
 
+  ctx.strokeStyle = "rgba(7, 35, 48, 0.28)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(fish.radius * 0.18, -fish.radius * 0.42);
+  ctx.lineTo(fish.radius * 0.18, fish.radius * 0.42);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(fish.radius * 0.04, -fish.radius * 0.34);
+  ctx.quadraticCurveTo(fish.radius * 0.12, -fish.radius * 0.18, fish.radius * 0.22, -fish.radius * 0.04);
+  ctx.stroke();
+
+  ctx.strokeStyle = "rgba(235, 249, 255, 0.2)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(-fish.radius * 0.9, 0);
+  ctx.quadraticCurveTo(-fish.radius * 0.15, fish.radius * 0.08, fish.radius * 0.78, fish.radius * 0.1);
+  ctx.stroke();
+
   ctx.fillStyle = "rgba(250,255,255,0.55)";
   ctx.beginPath();
   ctx.arc(fish.radius * 0.45, -fish.radius * 0.18, Math.max(1.8, fish.radius * 0.12), 0, Math.PI * 2);
@@ -318,6 +345,17 @@ function drawFish(fish) {
   ctx.beginPath();
   ctx.arc(fish.radius * 0.48, -fish.radius * 0.15, Math.max(1.4, fish.radius * 0.08), 0, Math.PI * 2);
   ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.55)";
+  ctx.beginPath();
+  ctx.arc(fish.radius * 0.56, -fish.radius * 0.22, Math.max(0.7, fish.radius * 0.025), 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(8, 30, 38, 0.5)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(fish.radius * 0.68, fish.radius * 0.08);
+  ctx.quadraticCurveTo(fish.radius * 0.55, fish.radius * 0.22, fish.radius * 0.32, fish.radius * 0.18);
+  ctx.stroke();
 
   if (fish.isAccelerated) {
     ctx.strokeStyle = "rgba(255,255,255,0.65)";

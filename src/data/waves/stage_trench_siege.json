@@ -3,6 +3,10 @@
   "label": "深海裂谷 3-1",
   "mode": "stage",
   "maxWaves": 12,
+  "clearConditions": [
+    { "type": "maxLeaks", "value": 8 },
+    { "type": "minKills", "value": 210 }
+  ],
   "spawnTiming": {
     "normalBase": 0.38,
     "normalJitter": 0.18,

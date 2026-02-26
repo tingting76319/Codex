@@ -13,6 +13,8 @@ export function bindInputHandlers({
   onMapChange,
   onStageChange,
   onApplyStage,
+  onOpenMenu,
+  onOpenSave,
   onMenuMapChange,
   onMenuStageChange,
   onMenuStart,
@@ -78,6 +80,8 @@ export function bindInputHandlers({
   bindPress(hud.waveBtn, onStartWave);
   bindPress(hud.pauseBtn, onTogglePause);
   bindPress(hud.speedBtn, onToggleSpeed);
+  bindPress(hud.openMenuBtn, onOpenMenu);
+  bindPress(hud.openSaveBtn, onOpenSave);
   bindPress(hud.towerTypeBasicBtn, () => onSelectTowerType?.("basic"));
   bindPress(hud.towerTypeSlowBtn, () => onSelectTowerType?.("slow"));
   bindPress(hud.towerTypeSplashBtn, () => onSelectTowerType?.("splash"));

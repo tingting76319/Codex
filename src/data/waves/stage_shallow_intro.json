@@ -3,6 +3,9 @@
   "label": "淺海灣 1-1",
   "mode": "stage",
   "maxWaves": 8,
+  "clearConditions": [
+    { "type": "minLives", "value": 14 }
+  ],
   "spawnTiming": {
     "normalBase": 0.5,
     "normalJitter": 0.22,

@@ -1,4 +1,13 @@
-export function createSpawnSystem({ game, spawnFish, setMessage, playSfx, updateHud, wavePlan, showBossAlert }) {
+export function createSpawnSystem({
+  game,
+  spawnFish,
+  setMessage,
+  playSfx,
+  updateHud,
+  wavePlan,
+  showBossAlert,
+  onStageWavePlanComplete
+}) {
 function evalCountExpr(expr, wave) {
   if (!expr) return 0;
   let total = expr.base ?? 0;
@@ -48,14 +57,14 @@ function buildWave(wave) {
   return queue;
 }
 
-function startNextWave() {
-  const maxWaves = wavePlan.maxWaves ?? null;
-  if (maxWaves && game.wave >= maxWaves && !game.waveActive) {
-    game.stageCleared = true;
-    setMessage("本關卡已完成，請切換關卡或地圖。");
-    updateHud();
-    return;
-  }
+  function startNextWave() {
+    const maxWaves = wavePlan.maxWaves ?? null;
+    if (maxWaves && game.wave >= maxWaves && !game.waveActive) {
+      const finished = game.stageCleared || game.stageFailed;
+      setMessage(finished ? "本關卡已結算完成，請切換關卡或地圖。" : "本關波次已結束，等待結算。");
+      updateHud();
+      return;
+    }
   if (game.waveActive) {
     setMessage("本波魚群尚未結束。");
     return;
@@ -94,8 +103,17 @@ function updateSpawning(dt) {
     game.waveActive = false;
     const maxWaves = wavePlan.maxWaves ?? null;
     if (maxWaves && game.wave >= maxWaves) {
-      game.stageCleared = true;
-      setMessage(`關卡完成！已通關 ${wavePlan.label ?? "本關卡"}。`);
+      const verdict = onStageWavePlanComplete?.() ?? { ok: true, message: null };
+      if (verdict.ok) {
+        game.stageCleared = true;
+        game.stageFailed = false;
+        setMessage(verdict.message || `關卡完成！已通關 ${wavePlan.label ?? "本關卡"}。`);
+      } else {
+        game.stageCleared = false;
+        game.stageFailed = true;
+        game.stageFailReason = verdict.reason || "未達過關條件";
+        setMessage(verdict.message || `關卡失敗：${game.stageFailReason}`);
+      }
     } else {
       setMessage(`第 ${game.wave} 波完成！準備下一波。`);
     }

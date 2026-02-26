@@ -1,0 +1,34 @@
+{
+  "id": "stage_trench_abyssal_gate",
+  "label": "深海裂谷 3-2",
+  "mode": "stage",
+  "maxWaves": 14,
+  "clearConditions": [
+    { "type": "maxLeaks", "value": 5 },
+    { "type": "minKills", "value": 250 }
+  ],
+  "spawnTiming": {
+    "normalBase": 0.36,
+    "normalJitter": 0.16,
+    "bossFixed": 0.95
+  },
+  "bossWave": {
+    "interval": 7,
+    "bossKind": "bossWhaleKing",
+    "spawnLast": true,
+    "extraRules": [
+      { "kind": "sharkLarge", "count": { "base": 4 } },
+      { "kind": "swordfish", "count": { "base": 6 } },
+      { "kind": "whale", "count": { "base": 2 } }
+    ]
+  },
+  "rules": [
+    { "kind": "tunaSmall", "unlockWave": 1, "count": { "base": 7, "terms": [{ "type": "mul", "value": "wave", "factor": 1 }] } },
+    { "kind": "puffer", "unlockWave": 1, "count": { "base": 2, "terms": [{ "type": "floorDiv", "value": "wave", "divisor": 2 }] } },
+    { "kind": "tunaMedium", "unlockWave": 2, "count": { "base": 4, "terms": [{ "type": "mul", "value": "wave", "factor": 1 }] } },
+    { "kind": "sharkSmall", "unlockWave": 2, "count": { "base": 3, "terms": [{ "type": "floorDiv", "value": "wave", "divisor": 2 }] } },
+    { "kind": "swordfish", "unlockWave": 3, "count": { "base": 4, "terms": [{ "type": "mul", "value": "wave", "factor": 1 }] } },
+    { "kind": "sharkLarge", "unlockWave": 4, "count": { "base": 2, "terms": [{ "type": "floorDiv", "value": "wave", "divisor": 2 }] } },
+    { "kind": "whale", "unlockWave": 5, "count": { "base": 1, "terms": [{ "type": "floorDiv", "value": "waveMinus", "minus": 4, "divisor": 2 }] } }
+  ]
+}

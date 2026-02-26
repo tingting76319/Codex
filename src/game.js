@@ -175,6 +175,7 @@ const resolvedMapId = mapCatalog[requestedMapId] && requestedMapId === stageMapI
 
 const game = {
   lives: 20,
+  maxLives: 20,
   gold: 120,
   kills: 0,
   wave: 0,
@@ -196,6 +197,8 @@ const game = {
   stageShortLabel: initialStage.label,
   mapShortLabel: (mapCatalog[resolvedMapId]?.name ?? resolvedMapId),
   stageCleared: false,
+  stageFailed: false,
+  stageFailReason: "",
   selectedTowerType: "basic",
   audioMuted: Boolean(savedSettings.audioMuted),
   bgmVolume: Number(savedSettings.bgmVolume ?? (Number(hud.bgmVolume?.value ?? 45) / 100)),
@@ -293,7 +296,8 @@ const { startNextWave, updateSpawning } = createSpawnSystem({
   playSfx,
   updateHud,
   wavePlan: activeStage.wavePlan,
-  showBossAlert
+  showBossAlert,
+  onStageWavePlanComplete: () => evaluateStageClearConditions(activeStage)
 });
 
 let pendingMapId = game.mapId;
@@ -335,6 +339,49 @@ function stageMetaSummary(stage) {
     waveLabel: `${waveCount || "?"} 波`,
     bossLabel: hasBoss ? "含 Boss" : "一般波次"
   };
+}
+
+function stageClearConditionLines(stage) {
+  if (!stage || stage.id.startsWith("endless")) return ["存活越久越好（無盡模式）"];
+  const conds = stage.wavePlan?.clearConditions ?? [];
+  const lines = [`通關並完成 ${stage.wavePlan?.maxWaves ?? "?"} 波`];
+  for (const cond of conds) {
+    if (cond.type === "minLives") lines.push(`剩餘生命至少 ${cond.value}`);
+    else if (cond.type === "minKills") lines.push(`擊殺至少 ${cond.value}`);
+    else if (cond.type === "maxLeaks") lines.push(`漏怪最多 ${cond.value}`);
+    else if (cond.type === "maxTowersPlaced") lines.push(`建塔數量最多 ${cond.value}`);
+  }
+  return lines;
+}
+
+function stageClearConditionText(stage) {
+  return stageClearConditionLines(stage).join("｜");
+}
+
+function evaluateStageClearConditions(stage) {
+  if (!stage || stage.id.startsWith("endless")) {
+    return { ok: true, reason: "", message: `關卡完成！已通關 ${stage?.label ?? "本關卡"}。` };
+  }
+  const failures = [];
+  for (const cond of stage.wavePlan?.clearConditions ?? []) {
+    if (cond.type === "minLives" && game.lives < cond.value) failures.push(`生命不足（需 ≥ ${cond.value}）`);
+    if (cond.type === "minKills" && game.kills < cond.value) failures.push(`擊殺不足（需 ≥ ${cond.value}）`);
+    if (cond.type === "maxLeaks") {
+      const leaks = Math.max(0, game.maxLives - game.lives);
+      if (leaks > cond.value) failures.push(`漏怪過多（需 ≤ ${cond.value}，目前 ${leaks}）`);
+    }
+    if (cond.type === "maxTowersPlaced" && game.stats.towersPlaced > cond.value) {
+      failures.push(`建塔超限（需 ≤ ${cond.value}，目前 ${game.stats.towersPlaced}）`);
+    }
+  }
+  if (failures.length) {
+    return {
+      ok: false,
+      reason: failures[0],
+      message: `未達過關條件：${failures[0]}`
+    };
+  }
+  return { ok: true, reason: "", message: `關卡完成！已達成 ${stage.label} 的過關條件。` };
 }
 
 function starsText(stageId) {
@@ -525,6 +572,10 @@ function syncSelectorValues() {
 function updatePendingLabels() {
   if (hud.mapLabel) hud.mapLabel.textContent = mapCatalog[pendingMapId]?.name ?? pendingMapId;
   if (hud.stageLabel) hud.stageLabel.textContent = stageCatalog[pendingStageId]?.label ?? pendingStageId;
+  if (hud.clearConditionLabel) {
+    const stage = stageCatalog[pendingStageId];
+    hud.clearConditionLabel.textContent = `過關條件：${stageClearConditionText(stage)}`;
+  }
   if (menu.currentMapLabel) menu.currentMapLabel.textContent = mapCatalog[pendingMapId]?.name ?? pendingMapId;
   if (menu.currentStageLabel) menu.currentStageLabel.textContent = stageCatalog[pendingStageId]?.label ?? pendingStageId;
   if (menu.stageSelectionText) {
@@ -786,15 +837,18 @@ function openResultOverlay({ victory }) {
   const nextStageId = getNextPlayableStageId(game.stageId);
   const nextUnlocked = nextStageId ? isStageUnlocked(nextStageId) : false;
   const nextStageLabel = nextStageId ? (stageCatalog[nextStageId]?.label ?? nextStageId) : "無";
-  resultUi.kicker.textContent = victory ? "關卡結算" : "戰鬥失敗";
-  resultUi.title.textContent = victory ? "任務完成" : "防線失守";
+  const failedByCondition = !victory && game.lives > 0 && game.stageFailed;
+  resultUi.kicker.textContent = victory ? "關卡結算" : failedByCondition ? "條件未達成" : "戰鬥失敗";
+  resultUi.title.textContent = victory ? "任務完成" : failedByCondition ? "任務失敗" : "防線失守";
+  const activeStageInfo = stageCatalog[game.stageId];
+  const clearCondText = stageClearConditionText(activeStageInfo);
   resultUi.summary.textContent = victory
     ? `${game.stageLabel} 通關，獲得 ${game.lastAwardedStars || 0} 星，結算獎勵 +${game.lastResultReward || 0} 金幣。`
-    : `${game.stageLabel} 挑戰失敗，請調整塔台配置再試一次。`;
+    : `${game.stageLabel} 挑戰失敗，${game.stageFailReason ? `${game.stageFailReason}。` : ""}請調整塔台配置再試一次。`;
   if (resultUi.starsRule) {
     resultUi.starsRule.textContent = victory
-      ? "星級條件：3★ 生命≥18｜2★ 生命≥10｜1★ 通關"
-      : "星級條件：通關後依剩餘生命評級";
+      ? `過關條件：${clearCondText}｜星級：3★ 生命≥18｜2★ 生命≥10｜1★ 通關`
+      : `過關條件：${clearCondText}`;
   }
   if (resultUi.unlockHint) {
     const unlockedCount = Object.keys(stageCatalog)
@@ -881,6 +935,7 @@ function renderMenuStageCards() {
     if (isLocked) card.dataset.locked = "1";
     const mapName = mapCatalog[stage.mapId]?.name ?? stage.mapId;
     const { modeLabel, waveLabel, bossLabel } = stageMetaSummary(stage);
+    const clearCond = stageClearConditionText(stage);
     const stars = stage.id.startsWith("endless")
       ? `最佳波次 ${bestScores.endlessWave ?? 0} / 擊殺 ${bestScores.endlessKills ?? 0}`
       : starsText(stage.id);
@@ -897,6 +952,7 @@ function renderMenuStageCards() {
           <span class="tag">${bossLabel}</span>
           ${isLocked ? '<span class="tag">未解鎖</span>' : ""}
         </span>
+        <span class="meta">${clearCond}</span>
         <span class="stars">${stars}</span>
       </span>
     `;
@@ -938,6 +994,13 @@ function closeMainMenu() {
   menu.overlay?.classList.add("is-hidden");
   hideResultOverlay();
   updateHud();
+}
+
+function openSavePanelFromHud() {
+  openMainMenu();
+  setMenuPanel("home");
+  menu.saveSlot?.focus();
+  setMessage("已開啟主選單存檔區，可切換或重設存檔槽。");
 }
 
 function applyPendingStageSelection() {
@@ -1062,6 +1125,16 @@ bindInputHandlers({
     next.searchParams.set("slot", game.currentSaveSlot);
     window.location.href = next.toString();
   },
+  onOpenMenu: () => {
+    syncMenuStateFromDom();
+    openMainMenu();
+    setMenuPanel("home");
+    setMessage("已開啟主選單。");
+  },
+  onOpenSave: () => {
+    syncMenuStateFromDom();
+    openSavePanelFromHud();
+  },
   onMenuMapChange: () => {
     pendingMapId = menu.mapSelect.value;
     repopulateStageSelectors(pendingMapId);
@@ -1081,7 +1154,6 @@ bindInputHandlers({
   }
 });
 
-menu.navHomeBtn?.addEventListener("click", () => setMenuPanel("home"));
 menu.navHomeBtn?.addEventListener("click", () => setMenuPanel("home"));
 menu.navStagesBtn?.addEventListener("click", () => setMenuPanel("stages"));
 menu.navCodexBtn?.addEventListener("click", () => setMenuPanel("codex"));
@@ -1271,6 +1343,10 @@ function loop(ts) {
       if (game.stageCleared && !game.resultShown) {
         game.resultShown = true;
         openResultOverlay({ victory: true });
+      }
+      if (game.stageFailed && !game.resultShown) {
+        game.resultShown = true;
+        openResultOverlay({ victory: false });
       }
       updateHud();
     }
