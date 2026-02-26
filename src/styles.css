@@ -882,6 +882,23 @@ body {
   color: #c7e7ee;
 }
 
+.shortcut-quick-popover .row.action-row {
+  width: 100%;
+  text-align: left;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 10px;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.shortcut-quick-popover .row.action-row:hover,
+.shortcut-quick-popover .row.action-row:focus-visible {
+  border-color: rgba(125,233,255,0.28);
+  background: rgba(125,233,255,0.06);
+  outline: none;
+}
+
 .shortcut-quick-popover .key {
   border-radius: 7px;
   border: 1px solid rgba(125,233,255,0.22);
@@ -1365,6 +1382,12 @@ button.is-active {
 .result-stats .item .share-bar:focus-visible::after {
   opacity: 1;
   transform: translateY(0);
+}
+
+.result-stats .item.strategy-tip strong {
+  font-size: 13px;
+  line-height: 1.35;
+  color: #dff8ff;
 }
 
 .result-stats .item .share-bar span {

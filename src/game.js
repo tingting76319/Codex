@@ -1287,6 +1287,18 @@ function openResultOverlay({ victory }) {
     }).join("")
     : `<div class="share-bar is-empty" tabindex="0" data-tip="沒有額外條件加成"><span>無</span><div class="track"><div class="fill" style="width:0%"></div></div><strong>0%</strong></div>`;
   const condBonusCapNote = condBonusMult >= 1.35 ? "（已達條件加成上限）" : "";
+  const topCondShares = condBonusBreakdown.length > 0 && condBonusPctTotal > 0
+    ? [...condBonusBreakdown]
+      .map((entry) => {
+        const pct = Math.round((entry.bonus ?? 0) * 100);
+        const share = Math.max(1, Math.round((pct / condBonusPctTotal) * 100));
+        return { ...entry, pct, share };
+      })
+      .sort((a, b) => b.share - a.share)
+    : [];
+  const strategyHintText = topCondShares.length === 0
+    ? "本關無額外條件加成，提前開波收益主要取決於倒數剩餘時間與連續提前倍率。"
+    : `本關較適合提前開波的條件：${topCondShares.slice(0, 2).map((e) => `${e.label}（${e.share}%）`).join("、")}。優先在倒數前段搶開可放大條件加成收益。`;
   resultUi.stats.innerHTML = `
     <div class="item"><span>地圖 / 關卡</span><strong>${game.mapShortLabel} / ${game.stageShortLabel}</strong></div>
     <div class="item"><span>波次</span><strong>${game.wave}</strong></div>
@@ -1299,6 +1311,7 @@ function openResultOverlay({ victory }) {
     <div class="item"><span>提前開波策略分析</span><strong>${earlyVerdict}｜平均每波 +${avgEarlyBonus.toFixed(1)}</strong></div>
     <div class="item"><span>策略加成來源</span><strong>條件加成 x${condBonusMult.toFixed(2)}｜${condBonusBreakdownText}${condBonusCapNote}</strong></div>
     <div class="item"><span>加成來源占比</span><strong>${condBonusShareText}</strong><div class="share-bars">${condBonusShareBars}</div></div>
+    <div class="item strategy-tip"><span>提前開波策略提示</span><strong>${strategyHintText}</strong></div>
     <div class="item"><span>建塔 / 升級</span><strong>${game.stats.towersPlaced} / ${game.stats.towerUpgrades}</strong></div>
     <div class="item"><span>分支升級 / Boss 擊殺</span><strong>${game.stats.branchUpgrades} / ${game.stats.bossKills}</strong></div>
     ${conditionRows}
@@ -1760,7 +1773,7 @@ menu.bossEarlyCueStrength?.addEventListener("change", () => {
 menu.bossEarlyCuePreviewBtn?.addEventListener("click", () => {
   ensureAudio();
   playSfx("waveEarlyBoss");
-  setMessage(`已預聽 Boss提前開波音效（${game.displaySettings.bossEarlyCueStrength}）`);
+  setMessage(`已預聽 Boss提前開波音效（${game.displaySettings.bossEarlyCueStrength}｜建議預設：一般）`);
 });
 menu.resetSettingsBtn?.addEventListener("click", () => {
   game.audioMuted = false;

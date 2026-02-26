@@ -110,6 +110,7 @@ export function bindInputHandlers({
       if (!btn || !pop) return;
       positionPopover();
       pop.classList.remove("is-hidden");
+      pop.querySelector(".action-row")?.focus();
     };
     const hideQuickPopover = () => {
       pop?.classList.add("is-hidden");
@@ -143,6 +144,20 @@ export function bindInputHandlers({
         onOpenShortcutHelp?.(event);
       });
     }
+    pop?.addEventListener("click", (event) => {
+      const row = event.target.closest(".action-row");
+      if (!row) return;
+      const action = row.dataset.shortcutAction;
+      if (action === "space") {
+        onStartWave?.(event);
+      } else if (action === "autoWave") {
+        onToggleAutoStartWaves?.();
+      } else if (action === "branchA") {
+        // Guide only: branch shortcuts require selecting a tower.
+      } else if (action === "branchB") {
+        // Guide only: branch shortcuts require selecting a tower.
+      }
+    });
     window.addEventListener("resize", () => {
       if (pop && !pop.classList.contains("is-hidden")) positionPopover();
     });
@@ -153,7 +168,30 @@ export function bindInputHandlers({
       hideQuickPopover();
     }, true);
     window.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") hideQuickPopover();
+      if (!pop || pop.classList.contains("is-hidden")) {
+        if (event.key === "Escape") hideQuickPopover();
+        return;
+      }
+      const rows = [...pop.querySelectorAll(".action-row")];
+      if (rows.length > 0 && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+        event.preventDefault();
+        const current = document.activeElement;
+        const idx = rows.indexOf(current);
+        const nextIdx = event.key === "ArrowDown"
+          ? (idx + 1 + rows.length) % rows.length
+          : (idx - 1 + rows.length) % rows.length;
+        rows[nextIdx]?.focus();
+        return;
+      }
+      if (event.key === "Enter" && document.activeElement?.classList?.contains("action-row")) {
+        event.preventDefault();
+        document.activeElement.click();
+        return;
+      }
+      if (event.key === "Escape") {
+        hideQuickPopover();
+        btn?.focus?.();
+      }
     });
   }
   bindPress(hud.openSaveBtn, onOpenSave);
