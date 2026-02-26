@@ -1308,9 +1308,27 @@ function openResultOverlay({ victory }) {
       : earlyStartUseRate > 0
         ? "使用率偏低，可優先在非Boss波且場面穩定時提早開波。"
         : "本局未使用提前開波；若防線穩定可在倒數前段提早開波增加金幣。";
+  const earlyBonusByWave = game.earlyStartBonusByWave && typeof game.earlyStartBonusByWave === "object" ? game.earlyStartBonusByWave : {};
+  const totalWaves = Math.max(1, game.wave);
+  const segmentSize = Math.max(1, Math.ceil(totalWaves / 3));
+  const segments = [
+    { label: "前段", from: 1, to: Math.min(totalWaves, segmentSize), bonus: 0 },
+    { label: "中段", from: Math.min(totalWaves, segmentSize + 1), to: Math.min(totalWaves, segmentSize * 2), bonus: 0 },
+    { label: "後段", from: Math.min(totalWaves, segmentSize * 2 + 1), to: totalWaves, bonus: 0 }
+  ].filter((s) => s.from <= s.to);
+  for (const [waveKey, bonusVal] of Object.entries(earlyBonusByWave)) {
+    const w = Number(waveKey);
+    if (!Number.isFinite(w)) continue;
+    const seg = segments.find((s) => w >= s.from && w <= s.to);
+    if (seg) seg.bonus += Number(bonusVal) || 0;
+  }
+  const bestSegment = [...segments].sort((a, b) => b.bonus - a.bonus)[0];
   const bestWaveRangeHint = game.wave >= 10
     ? "建議區間：前中期（約 20%~65% 波次）通常最適合提前開波，兼顧防線穩定與獎勵累積。"
     : "建議區間：前半段波次優先嘗試提前開波，先建立連續獎勵倍率。";
+  const bestActualRangeHint = bestSegment && bestSegment.bonus > 0
+    ? `本局最佳表現波段：${bestSegment.label}（第 ${bestSegment.from}-${bestSegment.to} 波）累計 +${bestSegment.bonus}`
+    : "本局尚未形成明顯最佳提前獎勵波段。";
   resultUi.stats.innerHTML = `
     <div class="item"><span>地圖 / 關卡</span><strong>${game.mapShortLabel} / ${game.stageShortLabel}</strong></div>
     <div class="item"><span>波次</span><strong>${game.wave}</strong></div>
@@ -1323,6 +1341,7 @@ function openResultOverlay({ victory }) {
     <div class="item"><span>提前開波策略分析</span><strong>${earlyVerdict}｜平均每波 +${avgEarlyBonus.toFixed(1)}</strong></div>
     <div class="item"><span>提前開波使用率</span><strong>${earlyStartCount}/${Math.max(game.wave, 0)} 波（${earlyStartUseRate}%）｜${usageOpportunityHint}</strong></div>
     <div class="item strategy-tip"><span>最佳提前波次區間</span><strong>${bestWaveRangeHint}</strong></div>
+    <div class="item strategy-tip"><span>本局最佳表現波段</span><strong>${bestActualRangeHint}</strong></div>
     <div class="item"><span>策略加成來源</span><strong>條件加成 x${condBonusMult.toFixed(2)}｜${condBonusBreakdownText}${condBonusCapNote}</strong></div>
     <div class="item"><span>加成來源占比</span><strong>${condBonusShareText}</strong><div class="share-bars">${condBonusShareBars}</div></div>
     <div class="item strategy-tip"><span>提前開波策略提示</span><strong>${strategyHintText}</strong></div>
@@ -1794,6 +1813,7 @@ menu.bossEarlyCueCompareBtn?.addEventListener("click", () => {
   const original = game.displaySettings.bossEarlyCueStrength;
   const seq = ["低", "一般", "強"];
   if (menu.bossEarlyCueCompareStatus) menu.bossEarlyCueCompareStatus.textContent = "比較模式播放中：準備...";
+  if (menu.bossEarlyCueCompareBtn) menu.bossEarlyCueCompareBtn.disabled = true;
   seq.forEach((mode, idx) => {
     setTimeout(() => {
       game.displaySettings.bossEarlyCueStrength = mode;
@@ -1803,6 +1823,7 @@ menu.bossEarlyCueCompareBtn?.addEventListener("click", () => {
         setTimeout(() => {
           game.displaySettings.bossEarlyCueStrength = original;
           syncMenuSettingsUi();
+          if (menu.bossEarlyCueCompareBtn) menu.bossEarlyCueCompareBtn.disabled = false;
           if (menu.bossEarlyCueCompareStatus) menu.bossEarlyCueCompareStatus.textContent = `比較模式完成（已恢復：${original}）`;
         }, 120);
       }

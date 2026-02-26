@@ -95,20 +95,8 @@ export function bindInputHandlers({
     const reasonEl = document.getElementById("shortcutQuickReason");
     let longPressTimer = null;
     let longPressTriggered = false;
-    const clearLongPress = () => {
-      if (longPressTimer) {
-        clearTimeout(longPressTimer);
-        longPressTimer = null;
-      }
-    };
-    const positionPopover = () => {
-      if (!btn || !pop) return;
-      const rect = btn.getBoundingClientRect();
-      pop.style.left = `${Math.round(rect.left)}px`;
-      pop.style.top = `${Math.round(rect.bottom + 8)}px`;
-    };
-    const showQuickPopover = () => {
-      if (!btn || !pop) return;
+    const refreshQuickPopoverState = () => {
+      if (!pop) return;
       const menuVisible = !document.getElementById("mainMenuOverlay")?.classList.contains("is-hidden");
       const towerSelected = !document.getElementById("towerInfoPanel")?.classList.contains("is-empty");
       for (const row of pop.querySelectorAll(".action-row")) {
@@ -129,6 +117,22 @@ export function bindInputHandlers({
         const label = row.dataset.label || row.textContent?.trim() || "快捷鍵";
         row.title = available ? label : `${label}（${reason}）`;
       }
+    };
+    const clearLongPress = () => {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+    };
+    const positionPopover = () => {
+      if (!btn || !pop) return;
+      const rect = btn.getBoundingClientRect();
+      pop.style.left = `${Math.round(rect.left)}px`;
+      pop.style.top = `${Math.round(rect.bottom + 8)}px`;
+    };
+    const showQuickPopover = () => {
+      if (!btn || !pop) return;
+      refreshQuickPopoverState();
       if (reasonEl) reasonEl.textContent = "提示：可用項目可直接用 Enter 觸發";
       positionPopover();
       pop.classList.remove("is-hidden");
@@ -188,8 +192,19 @@ export function bindInputHandlers({
         : `提示：${row.dataset.label || "快捷鍵"}（Enter 可觸發）`;
     });
     window.addEventListener("resize", () => {
-      if (pop && !pop.classList.contains("is-hidden")) positionPopover();
+      if (pop && !pop.classList.contains("is-hidden")) {
+        refreshQuickPopoverState();
+        positionPopover();
+      }
     });
+    const observerTargetMenu = document.getElementById("mainMenuOverlay");
+    const observerTargetTower = document.getElementById("towerInfoPanel");
+    const observer = new MutationObserver(() => {
+      if (!pop || pop.classList.contains("is-hidden")) return;
+      refreshQuickPopoverState();
+    });
+    if (observerTargetMenu) observer.observe(observerTargetMenu, { attributes: true, attributeFilter: ["class"] });
+    if (observerTargetTower) observer.observe(observerTargetTower, { attributes: true, attributeFilter: ["class"] });
     document.addEventListener("pointerdown", (event) => {
       if (!pop || pop.classList.contains("is-hidden")) return;
       if (event.target === btn || btn?.contains?.(event.target)) return;

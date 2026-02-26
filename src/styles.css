@@ -910,6 +910,11 @@ body {
   background: rgba(255,255,255,0.02);
 }
 
+.shortcut-quick-popover .row.action-row.is-unavailable .key {
+  border-color: rgba(255,255,255,0.12);
+  color: rgba(230,251,255,0.72);
+}
+
 .shortcut-quick-popover .key {
   border-radius: 7px;
   border: 1px solid rgba(125,233,255,0.22);

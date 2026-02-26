@@ -15,6 +15,7 @@ if (typeof game.autoWaveDelayTotal !== "number") game.autoWaveDelayTotal = autoW
 if (typeof game.earlyStartStreak !== "number") game.earlyStartStreak = 0;
 if (typeof game.earlyStartBonusTotal !== "number") game.earlyStartBonusTotal = 0;
 if (typeof game.earlyStartCount !== "number") game.earlyStartCount = 0;
+if (!game.earlyStartBonusByWave || typeof game.earlyStartBonusByWave !== "object") game.earlyStartBonusByWave = {};
 if (typeof game.earlyStartBonusCapMult !== "number") game.earlyStartBonusCapMult = 1.75;
 if (typeof game.earlyStartConditionBonusMult !== "number") game.earlyStartConditionBonusMult = 1;
 if (!Array.isArray(game.earlyStartConditionBonusBreakdown)) game.earlyStartConditionBonusBreakdown = [];
@@ -131,9 +132,10 @@ function buildWave(wave) {
     game.gold += earlyStartBonus;
     game.earlyStartBonusTotal = (game.earlyStartBonusTotal ?? 0) + earlyStartBonus;
     game.earlyStartCount = (game.earlyStartCount ?? 0) + 1;
+    const upcomingWave = game.wave + 1;
+    game.earlyStartBonusByWave[upcomingWave] = (game.earlyStartBonusByWave[upcomingWave] ?? 0) + earlyStartBonus;
     game.earlyStartStreak = (game.earlyStartStreak ?? 0) + 1;
     const condText = (game.earlyStartConditionBonusMult ?? 1) > 1 ? `｜條件加成 x${game.earlyStartConditionBonusMult.toFixed(2)}` : "";
-    const upcomingWave = game.wave + 1;
     const bossIntervalPreview = wavePlan.bossWave?.interval ?? 5;
     const isEarlyBossWave = upcomingWave > 0 && upcomingWave % bossIntervalPreview === 0;
     setMessage(`提前開波獎勵 +${earlyStartBonus} 金幣${condText}`);
