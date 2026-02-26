@@ -97,7 +97,7 @@ function sanitizeSettings(raw) {
     sfxVolume: clamp01(Number(obj.sfxVolume), DEFAULT_SETTINGS.sfxVolume),
     showDamageText: obj.showDamageText !== false,
     fxDensity: ["低", "中", "高"].includes(obj.fxDensity) ? obj.fxDensity : DEFAULT_SETTINGS.fxDensity,
-    spriteQuality: ["低", "高"].includes(obj.spriteQuality) ? obj.spriteQuality : DEFAULT_SETTINGS.spriteQuality,
+    spriteQuality: ["低", "自動", "高"].includes(obj.spriteQuality) ? obj.spriteQuality : DEFAULT_SETTINGS.spriteQuality,
     showTowerPanel: obj.showTowerPanel !== false
   };
 }
@@ -225,7 +225,7 @@ const game = {
   displaySettings: {
     showDamageText: savedSettings.showDamageText !== false,
     fxDensity: ["低", "中", "高"].includes(savedSettings.fxDensity) ? savedSettings.fxDensity : "中",
-    spriteQuality: ["低", "高"].includes(savedSettings.spriteQuality) ? savedSettings.spriteQuality : "高",
+    spriteQuality: ["低", "自動", "高"].includes(savedSettings.spriteQuality) ? savedSettings.spriteQuality : "高",
     showTowerPanel: savedSettings.showTowerPanel !== false
   }
 };

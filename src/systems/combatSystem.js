@@ -441,6 +441,20 @@ function updateFishes(dt) {
       if (hpRatio <= fish.accelerationSkill.triggerHpRatio) {
         fish.isAccelerated = true;
         fish.speed = fish.baseSpeed * fish.accelerationSkill.multiplier;
+        if (fish.isBoss) {
+          burst(fish.x, fish.y, "#ff7b7b");
+          game.particles.push({
+            x: fish.x,
+            y: fish.y,
+            vx: 0,
+            vy: 0,
+            life: 0.55,
+            color: "rgba(255,123,123,0.95)",
+            ringRadius: (fish.radius ?? 30) + 22
+          });
+          setMessage(`${fish.label} 進入狂暴階段！`);
+          showBossAlert?.("Boss 進入狂暴階段", { badge: "狂暴", duration: 2.4 });
+        }
       }
     }
 

@@ -24,8 +24,15 @@ function getFishSprite(species, fish = null) {
   return img;
 }
 
+function effectiveSpriteQuality() {
+  const mode = game.displaySettings?.spriteQuality ?? "高";
+  if (mode !== "自動") return mode;
+  const pressure = (game.fishes?.length ?? 0) + ((game.bullets?.length ?? 0) * 0.5) + ((game.particles?.length ?? 0) * 0.12);
+  return pressure > 85 ? "低" : "高";
+}
+
 function drawFishSpriteIfAvailable(fish) {
-  if ((game.displaySettings?.spriteQuality ?? "高") === "低") return false;
+  if (effectiveSpriteQuality() === "低") return false;
   const img = getFishSprite(fish.species, fish);
   if (!img || !img.complete || !img.naturalWidth) return false;
   const isOarfish = fish.species === "皇帶魚";
@@ -197,6 +204,12 @@ function drawTowers() {
       ctx.setLineDash([]);
     }
     if (inSelectedSupportRange) {
+      ctx.strokeStyle = "rgba(141,255,185,0.18)";
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(selectedSupport.x, selectedSupport.y);
+      ctx.lineTo(tower.x, tower.y);
+      ctx.stroke();
       ctx.strokeStyle = "rgba(141,255,185,0.26)";
       ctx.lineWidth = 2;
       ctx.setLineDash([3, 5]);
@@ -207,6 +220,10 @@ function drawTowers() {
       ctx.fillStyle = "rgba(141,255,185,0.12)";
       ctx.beginPath();
       ctx.arc(tower.x, tower.y, 24, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(141,255,185,0.9)";
+      ctx.beginPath();
+      ctx.arc(tower.x + 16, tower.y - 14, 4.5, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.fillStyle = "#102e3c";
@@ -636,6 +653,16 @@ function drawFish(fish) {
   ctx.fillStyle = hpRatio > 0.45 ? "#54e6a6" : hpRatio > 0.2 ? "#ffd166" : "#ff7b7b";
   ctx.fillRect(fish.x - fish.radius, fish.y - fish.radius - 13, fish.radius * 2 * hpRatio, 4);
   if (fish.isBoss) {
+    if (fish.isAccelerated) {
+      const ragePulse = 0.45 + 0.25 * (0.5 + 0.5 * Math.sin(performance.now() * 0.018));
+      ctx.strokeStyle = `rgba(255, 123, 123, ${ragePulse})`;
+      ctx.lineWidth = 2.4;
+      ctx.setLineDash([9, 5]);
+      ctx.beginPath();
+      ctx.arc(fish.x, fish.y, fish.radius + 16, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
     if (fish.bossShieldHp > 0) {
       const shieldPulse = 0.65 + 0.35 * (0.5 + 0.5 * Math.sin(performance.now() * 0.014));
       ctx.strokeStyle = `rgba(125, 233, 255, ${0.35 + shieldPulse * 0.25})`;
