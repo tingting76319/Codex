@@ -99,6 +99,7 @@ export const menu = {
   codexSkillFilter: document.getElementById("menuCodexSkillFilter"),
   bossEarlyCueStrength: document.getElementById("menuBossEarlyCueStrength"),
   bossEarlyCuePreviewBtn: document.getElementById("menuBossEarlyCuePreviewBtn"),
+  bossEarlyCueCompareBtn: document.getElementById("menuBossEarlyCueCompareBtn"),
   goStagesBtn: document.getElementById("menuGoStagesBtn"),
   stageStartBtn: document.getElementById("menuStageStartBtn"),
   backHomeBtn: document.getElementById("menuBackHomeBtn"),

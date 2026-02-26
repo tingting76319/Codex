@@ -1260,6 +1260,8 @@ function openResultOverlay({ victory }) {
   const goldForRatio = Math.max(1, Number(game.gold ?? 0));
   const earlyBonusRatio = Math.round((earlyBonusTotal / goldForRatio) * 100);
   const avgEarlyBonus = game.wave > 0 ? (earlyBonusTotal / game.wave) : 0;
+  const earlyStartCount = Math.max(0, Number(game.earlyStartCount ?? 0));
+  const earlyStartUseRate = game.wave > 0 ? Math.round((earlyStartCount / game.wave) * 100) : 0;
   const earlyVerdict = earlyBonusRatio >= 25 ? "高收益" : earlyBonusRatio >= 12 ? "穩定收益" : earlyBonusRatio > 0 ? "小幅收益" : "未使用";
   const condBonusMult = Math.max(1, Number(game.earlyStartConditionBonusMult ?? 1));
   const condBonusBreakdown = Array.isArray(game.earlyStartConditionBonusBreakdown) ? game.earlyStartConditionBonusBreakdown : [];
@@ -1299,6 +1301,13 @@ function openResultOverlay({ victory }) {
   const strategyHintText = topCondShares.length === 0
     ? "本關無額外條件加成，提前開波收益主要取決於倒數剩餘時間與連續提前倍率。"
     : `本關較適合提前開波的條件：${topCondShares.slice(0, 2).map((e) => `${e.label}（${e.share}%）`).join("、")}。優先在倒數前段搶開可放大條件加成收益。`;
+  const usageOpportunityHint = earlyStartUseRate >= 70
+    ? "使用率高，已充分利用提前開波節奏。"
+    : earlyStartUseRate >= 35
+      ? "使用率中等，仍有機會在安全波次提前開波提高收益。"
+      : earlyStartUseRate > 0
+        ? "使用率偏低，可優先在非Boss波且場面穩定時提早開波。"
+        : "本局未使用提前開波；若防線穩定可在倒數前段提早開波增加金幣。";
   resultUi.stats.innerHTML = `
     <div class="item"><span>地圖 / 關卡</span><strong>${game.mapShortLabel} / ${game.stageShortLabel}</strong></div>
     <div class="item"><span>波次</span><strong>${game.wave}</strong></div>
@@ -1309,6 +1318,7 @@ function openResultOverlay({ victory }) {
     <div class="item"><span>結算獎勵</span><strong>${victory ? `+${game.lastResultReward || 0}` : "0"}</strong></div>
     <div class="item"><span>提前開波獎勵（本關累計）</span><strong>+${earlyBonusTotal}（約 ${earlyBonusRatio}% 本局金幣）</strong></div>
     <div class="item"><span>提前開波策略分析</span><strong>${earlyVerdict}｜平均每波 +${avgEarlyBonus.toFixed(1)}</strong></div>
+    <div class="item"><span>提前開波使用率</span><strong>${earlyStartCount}/${Math.max(game.wave, 0)} 波（${earlyStartUseRate}%）｜${usageOpportunityHint}</strong></div>
     <div class="item"><span>策略加成來源</span><strong>條件加成 x${condBonusMult.toFixed(2)}｜${condBonusBreakdownText}${condBonusCapNote}</strong></div>
     <div class="item"><span>加成來源占比</span><strong>${condBonusShareText}</strong><div class="share-bars">${condBonusShareBars}</div></div>
     <div class="item strategy-tip"><span>提前開波策略提示</span><strong>${strategyHintText}</strong></div>
@@ -1774,6 +1784,24 @@ menu.bossEarlyCuePreviewBtn?.addEventListener("click", () => {
   ensureAudio();
   playSfx("waveEarlyBoss");
   setMessage(`已預聽 Boss提前開波音效（${game.displaySettings.bossEarlyCueStrength}｜建議預設：一般）`);
+});
+menu.bossEarlyCueCompareBtn?.addEventListener("click", () => {
+  ensureAudio();
+  const original = game.displaySettings.bossEarlyCueStrength;
+  const seq = ["低", "一般", "強"];
+  seq.forEach((mode, idx) => {
+    setTimeout(() => {
+      game.displaySettings.bossEarlyCueStrength = mode;
+      playSfx("waveEarlyBoss");
+      if (idx === seq.length - 1) {
+        setTimeout(() => {
+          game.displaySettings.bossEarlyCueStrength = original;
+          syncMenuSettingsUi();
+        }, 120);
+      }
+    }, idx * 320);
+  });
+  setMessage("已播放 Boss提前開波音效比較：低 → 一般 → 強");
 });
 menu.resetSettingsBtn?.addEventListener("click", () => {
   game.audioMuted = false;

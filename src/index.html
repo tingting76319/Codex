@@ -204,6 +204,7 @@
                     <option value="強">強</option>
                   </select>
                   <button id="menuBossEarlyCuePreviewBtn" type="button">預聽</button>
+                  <button id="menuBossEarlyCueCompareBtn" type="button">比較</button>
                 </div>
               </div>
               <p class="main-menu-desc" style="margin-top:-6px;">建議預設：<strong>一般</strong>。安靜環境可用「低」，想強化 Boss 波提示可選「強」。</p>
@@ -379,17 +380,17 @@
         <div id="shortcutQuickPopover" class="shortcut-quick-popover is-hidden" role="dialog" aria-label="快捷鍵速覽">
           <div class="title">快捷鍵速覽</div>
           <div class="group-title">⚔ 戰鬥節奏</div>
-          <button class="row action-row" type="button" data-shortcut-action="space">
+          <button class="row action-row" type="button" data-shortcut-action="space" data-label="提前開波 / 手動開波">
             <span class="key">Space</span><span>提前開波 / 手動開波</span>
           </button>
-          <button class="row action-row" type="button" data-shortcut-action="autoWave">
+          <button class="row action-row" type="button" data-shortcut-action="autoWave" data-label="切換自動開波">
             <span class="key">A</span><span>切換自動開波</span>
           </button>
           <div class="group-title">🛠 塔台操作</div>
-          <button class="row action-row" type="button" data-shortcut-action="branchA">
+          <button class="row action-row" type="button" data-shortcut-action="branchA" data-label="分支 A 升級">
             <span class="key">Shift + 點塔</span><span>分支 A 升級</span>
           </button>
-          <button class="row action-row" type="button" data-shortcut-action="branchB">
+          <button class="row action-row" type="button" data-shortcut-action="branchB" data-label="分支 B 升級">
             <span class="key">Alt + 點塔</span><span>分支 B 升級</span>
           </button>
           <p>左鍵開設定頁說明；右鍵或長按顯示此面板。</p>

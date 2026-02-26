@@ -14,6 +14,7 @@ if (typeof game.autoWaveBonusPreview !== "number") game.autoWaveBonusPreview = 0
 if (typeof game.autoWaveDelayTotal !== "number") game.autoWaveDelayTotal = autoWaveDelaySeconds;
 if (typeof game.earlyStartStreak !== "number") game.earlyStartStreak = 0;
 if (typeof game.earlyStartBonusTotal !== "number") game.earlyStartBonusTotal = 0;
+if (typeof game.earlyStartCount !== "number") game.earlyStartCount = 0;
 if (typeof game.earlyStartBonusCapMult !== "number") game.earlyStartBonusCapMult = 1.75;
 if (typeof game.earlyStartConditionBonusMult !== "number") game.earlyStartConditionBonusMult = 1;
 if (!Array.isArray(game.earlyStartConditionBonusBreakdown)) game.earlyStartConditionBonusBreakdown = [];
@@ -129,6 +130,7 @@ function buildWave(wave) {
   if (earlyStartBonus > 0) {
     game.gold += earlyStartBonus;
     game.earlyStartBonusTotal = (game.earlyStartBonusTotal ?? 0) + earlyStartBonus;
+    game.earlyStartCount = (game.earlyStartCount ?? 0) + 1;
     game.earlyStartStreak = (game.earlyStartStreak ?? 0) + 1;
     const condText = (game.earlyStartConditionBonusMult ?? 1) > 1 ? `｜條件加成 x${game.earlyStartConditionBonusMult.toFixed(2)}` : "";
     const upcomingWave = game.wave + 1;

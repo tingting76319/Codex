@@ -108,6 +108,19 @@ export function bindInputHandlers({
     };
     const showQuickPopover = () => {
       if (!btn || !pop) return;
+      const menuVisible = !document.getElementById("mainMenuOverlay")?.classList.contains("is-hidden");
+      const towerSelected = !document.getElementById("towerInfoPanel")?.classList.contains("is-empty");
+      for (const row of pop.querySelectorAll(".action-row")) {
+        const action = row.dataset.shortcutAction;
+        let available = true;
+        if (action === "space" || action === "autoWave") available = !menuVisible;
+        if (action === "branchA" || action === "branchB") available = !menuVisible && towerSelected;
+        row.classList.toggle("is-unavailable", !available);
+        row.disabled = !available;
+        row.setAttribute("aria-disabled", available ? "false" : "true");
+        const label = row.dataset.label || row.textContent?.trim() || "快捷鍵";
+        row.title = available ? label : `${label}（目前不可用）`;
+      }
       positionPopover();
       pop.classList.remove("is-hidden");
       pop.querySelector(".action-row")?.focus();
@@ -152,10 +165,6 @@ export function bindInputHandlers({
         onStartWave?.(event);
       } else if (action === "autoWave") {
         onToggleAutoStartWaves?.();
-      } else if (action === "branchA") {
-        // Guide only: branch shortcuts require selecting a tower.
-      } else if (action === "branchB") {
-        // Guide only: branch shortcuts require selecting a tower.
       }
     });
     window.addEventListener("resize", () => {
