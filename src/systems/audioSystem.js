@@ -130,7 +130,8 @@ function playSfx(name) {
     hit: 15,
     enemyLeak: 120,
     bossShield: 160,
-    bossSummon: 180
+    bossSummon: 180,
+    waveEarly: 90
   };
   const last = audioState.lastSfxAt.get(name) ?? 0;
   if (throttleMs[name] && now - last < throttleMs[name]) return;
@@ -152,6 +153,10 @@ function playSfx(name) {
     playTone({ type: "sine", freq: 980, duration: 0.07, gain: 0.045, when: audioState.ctx.currentTime + 0.05 });
     playTone({ type: "sine", freq: 1280, duration: 0.08, gain: 0.035, when: audioState.ctx.currentTime + 0.11 });
   } else if (name === "waveStart") playTone({ type: "triangle", freq: 380, endFreq: 540, duration: 0.15, gain: 0.055 });
+  else if (name === "waveEarly") {
+    playTone({ type: "square", freq: 520, endFreq: 760, duration: 0.07, gain: 0.05 });
+    playTone({ type: "triangle", freq: 760, endFreq: 980, duration: 0.06, gain: 0.04, when: audioState.ctx.currentTime + 0.05 });
+  }
   else if (name === "bossAlarm") {
     playTone({ type: "sawtooth", freq: 180, duration: 0.18, gain: 0.06 });
     playTone({ type: "sawtooth", freq: 160, duration: 0.18, gain: 0.05, when: audioState.ctx.currentTime + 0.22 });

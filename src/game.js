@@ -1259,6 +1259,7 @@ function openResultOverlay({ victory }) {
     <div class="item"><span>剩餘生命</span><strong>${game.lives}</strong></div>
     <div class="item"><span>本局金幣</span><strong>${game.gold}</strong></div>
     <div class="item"><span>結算獎勵</span><strong>${victory ? `+${game.lastResultReward || 0}` : "0"}</strong></div>
+    <div class="item"><span>提前開波獎勵（本關累計）</span><strong>+${game.earlyStartBonusTotal ?? 0}</strong></div>
     <div class="item"><span>建塔 / 升級</span><strong>${game.stats.towersPlaced} / ${game.stats.towerUpgrades}</strong></div>
     <div class="item"><span>分支升級 / Boss 擊殺</span><strong>${game.stats.branchUpgrades} / ${game.stats.bossKills}</strong></div>
     ${conditionRows}

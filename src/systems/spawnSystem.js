@@ -113,7 +113,8 @@ function buildWave(wave) {
     game.earlyStartStreak = (game.earlyStartStreak ?? 0) + 1;
     const condText = (game.earlyStartConditionBonusMult ?? 1) > 1 ? `｜條件加成 x${game.earlyStartConditionBonusMult.toFixed(2)}` : "";
     setMessage(`提前開波獎勵 +${earlyStartBonus} 金幣${condText}`);
-    playSfx("build");
+    playSfx("waveEarly");
+    showBossAlert?.(`提前開波 +${earlyStartBonus} 金幣`, { badge: "提前", duration: 1.4 });
   } else if (manual && !hadCountdown) {
     game.earlyStartStreak = 0;
   }
