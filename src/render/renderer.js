@@ -176,8 +176,17 @@ function drawBackground() {
 }
 
 function drawTowers() {
+  const selectedTower = game.towers.find((t) => t.id === game.selectedTowerId) ?? null;
+  const selectedSupport = selectedTower?.typeKey === "support" ? selectedTower : null;
+  const selectedSupportRadius = selectedSupport?.supportAura?.radius ?? 0;
   for (const tower of game.towers) {
     const isSelected = tower.id === game.selectedTowerId;
+    const inSelectedSupportRange = Boolean(
+      selectedSupport &&
+      tower.id !== selectedSupport.id &&
+      tower.typeKey !== "support" &&
+      Math.hypot(tower.x - selectedSupport.x, tower.y - selectedSupport.y) <= selectedSupportRadius
+    );
     if (isSelected) {
       ctx.strokeStyle = "rgba(125, 233, 255, 0.24)";
       ctx.lineWidth = 1.25;
@@ -186,6 +195,19 @@ function drawTowers() {
       ctx.arc(tower.x, tower.y, tower.range, 0, Math.PI * 2);
       ctx.stroke();
       ctx.setLineDash([]);
+    }
+    if (inSelectedSupportRange) {
+      ctx.strokeStyle = "rgba(141,255,185,0.26)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([3, 5]);
+      ctx.beginPath();
+      ctx.arc(tower.x, tower.y, 26, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "rgba(141,255,185,0.12)";
+      ctx.beginPath();
+      ctx.arc(tower.x, tower.y, 24, 0, Math.PI * 2);
+      ctx.fill();
     }
     ctx.fillStyle = "#102e3c";
     ctx.strokeStyle = isSelected ? "rgba(125, 233, 255, 0.95)" : "rgba(147, 233, 255, 0.55)";
