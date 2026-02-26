@@ -752,12 +752,14 @@ function openCodexDetail(detail) {
     const color = detail.color ?? "#7fb0ff";
     const previewStats = detail.previewStats ?? [];
     if (detail.photoUrl) {
+      menu.detailPreview.classList.add("has-photo");
       menu.detailPreview.innerHTML = `
         <img class="photo" src="${detail.photoUrl}" alt="${detail.title} 真實照片" loading="lazy" referrerpolicy="no-referrer" />
         <div class="photo-vignette"></div>
         <div class="hud">${previewStats.map((s) => `<div>${s}</div>`).join("")}</div>
       `;
     } else {
+      menu.detailPreview.classList.remove("has-photo");
       menu.detailPreview.innerHTML = `
         <div class="sprite" style="--preview-color:${color}"></div>
         <div class="trail"></div>
