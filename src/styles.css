@@ -831,6 +831,29 @@ body {
 .menu-shortcut-list {
   display: grid;
   gap: 8px;
+  margin-top: 8px;
+}
+
+.menu-shortcut-details > summary {
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.menu-shortcut-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.menu-shortcut-details > summary::after {
+  content: "▼";
+  float: right;
+  font-size: 11px;
+  color: rgba(199,231,238,0.8);
+  transform: translateY(2px);
+}
+
+.menu-shortcut-details[open] > summary::after {
+  content: "▲";
 }
 
 .menu-shortcut-item {

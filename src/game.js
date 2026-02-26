@@ -1251,6 +1251,9 @@ function openResultOverlay({ victory }) {
     const value = s.target == null ? `${s.current}` : `${s.current} / ${s.target}`;
     return `<div class="item condition ${s.ok ? "ok" : "fail"}"><span>${s.label}（${s.rule}）</span><strong>${value} · ${status}</strong></div>`;
   }).join("");
+  const earlyBonusTotal = Math.max(0, Number(game.earlyStartBonusTotal ?? 0));
+  const goldForRatio = Math.max(1, Number(game.gold ?? 0));
+  const earlyBonusRatio = Math.round((earlyBonusTotal / goldForRatio) * 100);
   resultUi.stats.innerHTML = `
     <div class="item"><span>地圖 / 關卡</span><strong>${game.mapShortLabel} / ${game.stageShortLabel}</strong></div>
     <div class="item"><span>波次</span><strong>${game.wave}</strong></div>
@@ -1259,7 +1262,7 @@ function openResultOverlay({ victory }) {
     <div class="item"><span>剩餘生命</span><strong>${game.lives}</strong></div>
     <div class="item"><span>本局金幣</span><strong>${game.gold}</strong></div>
     <div class="item"><span>結算獎勵</span><strong>${victory ? `+${game.lastResultReward || 0}` : "0"}</strong></div>
-    <div class="item"><span>提前開波獎勵（本關累計）</span><strong>+${game.earlyStartBonusTotal ?? 0}</strong></div>
+    <div class="item"><span>提前開波獎勵（本關累計）</span><strong>+${earlyBonusTotal}（約 ${earlyBonusRatio}% 本局金幣）</strong></div>
     <div class="item"><span>建塔 / 升級</span><strong>${game.stats.towersPlaced} / ${game.stats.towerUpgrades}</strong></div>
     <div class="item"><span>分支升級 / Boss 擊殺</span><strong>${game.stats.branchUpgrades} / ${game.stats.bossKills}</strong></div>
     ${conditionRows}

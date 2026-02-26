@@ -112,9 +112,15 @@ function buildWave(wave) {
     game.earlyStartBonusTotal = (game.earlyStartBonusTotal ?? 0) + earlyStartBonus;
     game.earlyStartStreak = (game.earlyStartStreak ?? 0) + 1;
     const condText = (game.earlyStartConditionBonusMult ?? 1) > 1 ? `｜條件加成 x${game.earlyStartConditionBonusMult.toFixed(2)}` : "";
+    const upcomingWave = game.wave + 1;
+    const bossIntervalPreview = wavePlan.bossWave?.interval ?? 5;
+    const isEarlyBossWave = upcomingWave > 0 && upcomingWave % bossIntervalPreview === 0;
     setMessage(`提前開波獎勵 +${earlyStartBonus} 金幣${condText}`);
     playSfx("waveEarly");
-    showBossAlert?.(`提前開波 +${earlyStartBonus} 金幣`, { badge: "提前", duration: 1.4 });
+    showBossAlert?.(
+      `${isEarlyBossWave ? "Boss波" : "一般波"} 提前開波 +${earlyStartBonus} 金幣`,
+      { badge: isEarlyBossWave ? "提前-BOSS" : "提前", duration: isEarlyBossWave ? 1.7 : 1.4 }
+    );
   } else if (manual && !hadCountdown) {
     game.earlyStartStreak = 0;
   }
