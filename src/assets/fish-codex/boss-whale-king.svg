@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1f1039"/><stop offset="1" stop-color="#050813"/></linearGradient><linearGradient id="body" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7e8fc1"/><stop offset="1" stop-color="#2e315f"/></linearGradient></defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <circle cx="525" cy="66" r="72" fill="#6c84ff" opacity="0.12"/>
+  <path d="M520 188 C474 110 376 83 271 94 C177 103 113 142 95 188 C118 241 186 275 292 280 C385 284 475 259 520 188 Z" fill="url(#body)" stroke="#ffe5a6" stroke-opacity="0.28"/>
+  <path d="M130 182 L48 118 L82 188 L48 256 L130 197 Z" fill="#454b87"/>
+  <path d="M277 118 L310 75 L341 117 L372 73 L406 119" fill="none" stroke="#ffd166" stroke-width="5" stroke-linecap="round"/>
+  <path d="M216 216 C300 240 390 236 454 210" fill="none" stroke="#dbe8ff" stroke-opacity="0.25" stroke-width="3"/>
+  <circle cx="447" cy="166" r="7" fill="#081424"/><circle cx="450" cy="163" r="2" fill="#fff"/>
+  <circle cx="307" cy="187" r="132" fill="none" stroke="#7de9ff" stroke-opacity="0.28" stroke-width="5"/>
+  <text x="24" y="334" fill="#f4e6b3" font-size="26" font-family="Arial">Boss Whale King</text>
+</svg>

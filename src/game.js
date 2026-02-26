@@ -492,24 +492,24 @@ function describeSkill(skill) {
 
 function fishPhotoUrl(fishId, fish) {
   const explicit = {
-    sharkSmall: "https://source.unsplash.com/featured/640x360/?shark,fish,ocean",
-    sharkLarge: "https://source.unsplash.com/featured/640x360/?great-white-shark",
-    whale: "https://source.unsplash.com/featured/640x360/?whale,ocean",
-    bossWhaleKing: "https://source.unsplash.com/featured/640x360/?blue-whale",
-    tunaSmall: "https://source.unsplash.com/featured/640x360/?tuna,fish",
-    tunaMedium: "https://source.unsplash.com/featured/640x360/?tuna,school,fish",
-    puffer: "https://source.unsplash.com/featured/640x360/?pufferfish",
-    swordfish: "https://source.unsplash.com/featured/640x360/?sailfish"
+    sharkSmall: "./assets/fish-codex/shark-small-real.png",
+    sharkLarge: "./assets/fish-codex/shark-large-real.png",
+    whale: "./assets/fish-codex/whale-real.png",
+    bossWhaleKing: "./assets/fish-codex/boss-whale-king-real.jpeg",
+    tunaSmall: "./assets/fish-codex/tuna-real.png",
+    tunaMedium: "./assets/fish-codex/tuna-real.png",
+    puffer: "./assets/fish-codex/puffer-real.png",
+    swordfish: "./assets/fish-codex/swordfish-real.png"
   };
   if (explicit[fishId]) return explicit[fishId];
-  const speciesQuery = {
-    "鯊魚": "shark",
-    "鯨魚": "whale",
-    "鮪魚": "tuna",
-    "河豚": "pufferfish",
-    "旗魚": "sailfish"
-  }[fish?.species] ?? "fish";
-  return `https://source.unsplash.com/featured/640x360/?${encodeURIComponent(speciesQuery)},ocean`;
+  const bySpecies = {
+    "鯊魚": "./assets/fish-codex/shark-small.svg",
+    "鯨魚": "./assets/fish-codex/whale.svg",
+    "鮪魚": "./assets/fish-codex/tuna-medium.svg",
+    "河豚": "./assets/fish-codex/puffer.svg",
+    "旗魚": "./assets/fish-codex/swordfish.svg"
+  };
+  return bySpecies[fish?.species] ?? "./assets/fish-codex/fish-generic.svg";
 }
 
 function getStagesContainingFish(targetFishId) {

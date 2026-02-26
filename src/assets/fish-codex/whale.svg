@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a345f"/><stop offset="1" stop-color="#061225"/></linearGradient><linearGradient id="body" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6b8ea8"/><stop offset="1" stop-color="#27445c"/></linearGradient></defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <path d="M78 294 C190 258 322 298 435 248 C520 209 566 171 640 150 L640 360 L0 360 Z" fill="#09263c" opacity="0.45"/>
+  <path d="M514 188 C472 117 384 91 287 101 C194 111 123 148 106 188 C128 229 194 260 290 265 C383 271 472 252 514 188 Z" fill="url(#body)" stroke="#d8ecff" stroke-opacity="0.22"/>
+  <path d="M140 185 L58 124 L92 187 L58 248 L140 194 Z" fill="#3e5c73"/><path d="M330 141 C350 129 370 135 386 152" fill="none" stroke="#d5edff" stroke-opacity="0.35" stroke-width="3"/>
+  <path d="M328 174 C348 171 375 171 400 177" fill="none" stroke="#d5edff" stroke-opacity="0.28" stroke-width="2"/>
+  <circle cx="440" cy="166" r="6" fill="#081a24"/><circle cx="442" cy="164" r="2" fill="#fff" opacity="0.8"/>
+  <path d="M443 137 C457 119 463 108 462 95" fill="none" stroke="#d8f6ff" stroke-opacity="0.45" stroke-width="3"/>
+  <text x="24" y="334" fill="#d9f8ff" font-size="26" font-family="Arial">Whale</text>
+</svg>

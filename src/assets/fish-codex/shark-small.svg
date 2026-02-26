@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a4152"/><stop offset="1" stop-color="#031d28"/></linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a9c2ce"/><stop offset="1" stop-color="#496774"/></linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <g opacity="0.18" stroke="#bdefff"><path d="M0 60 C120 20 220 90 360 58 C470 34 560 42 640 26" fill="none"/><path d="M0 240 C140 210 210 272 350 236 C450 212 560 222 640 204" fill="none"/></g>
+  <ellipse cx="322" cy="186" rx="190" ry="66" fill="url(#body)"/>
+  <path d="M498 186 C454 136 380 122 274 129 C186 134 144 152 132 186 C146 216 185 238 275 243 C384 249 453 236 498 186 Z" fill="url(#body)" stroke="#d7eef7" stroke-opacity="0.35"/>
+  <path d="M256 138 L304 82 L342 142 Z" fill="#5f7f8d"/>
+  <path d="M156 170 L98 130 L118 181 L94 236 L156 204 Z" fill="#5b7a87"/>
+  <path d="M250 207 C296 224 353 224 410 204" fill="none" stroke="#d9f1f9" stroke-opacity="0.25" stroke-width="3"/>
+  <circle cx="444" cy="171" r="6" fill="#071b24"/><circle cx="446" cy="169" r="2" fill="#fff" opacity="0.8"/>
+  <text x="24" y="334" fill="#d9f8ff" font-size="26" font-family="Arial">Shark (Small)</text>
+</svg>
