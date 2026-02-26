@@ -33,8 +33,10 @@ function getFishSprite(species, fish = null) {
 function effectiveSpriteQuality() {
   const mode = game.displaySettings?.spriteQuality ?? "高";
   if (mode !== "自動") return mode;
+  const thresholdMap = { "低": 65, "中": 85, "高": 110 };
+  const threshold = thresholdMap[game.displaySettings?.spriteAutoThreshold ?? "中"] ?? 85;
   const pressure = (game.fishes?.length ?? 0) + ((game.bullets?.length ?? 0) * 0.5) + ((game.particles?.length ?? 0) * 0.12);
-  return pressure > 85 ? "低" : "高";
+  return pressure > threshold ? "低" : "高";
 }
 
 function mergedSupportBuffWithCaps(baseBuff = null, aura = null) {
@@ -241,6 +243,7 @@ function drawBackground() {
       if (valid && supportSpec?.supportAura?.radius) {
         let coveredCount = 0;
         let addedDps = 0;
+        let coveredBaseDps = 0;
         ctx.strokeStyle = "rgba(141,255,185,0.28)";
         ctx.lineWidth = 1.4;
         ctx.setLineDash([5, 6]);
@@ -255,7 +258,10 @@ function drawBackground() {
           coveredCount += 1;
           const currentBuff = mergedSupportBuffWithCaps(tower.activeSupportBuff, null);
           const plusBuff = mergedSupportBuffWithCaps(tower.activeSupportBuff, supportSpec.supportAura);
-          addedDps += Math.max(0, estimateTowerDpsWithBuff(tower, plusBuff) - estimateTowerDpsWithBuff(tower, currentBuff));
+          const beforeDps = estimateTowerDpsWithBuff(tower, currentBuff);
+          const afterDps = estimateTowerDpsWithBuff(tower, plusBuff);
+          coveredBaseDps += beforeDps;
+          addedDps += Math.max(0, afterDps - beforeDps);
           ctx.strokeStyle = "rgba(141,255,185,0.18)";
           ctx.beginPath();
           ctx.moveTo(cx, cy);
@@ -279,7 +285,8 @@ function drawBackground() {
         ctx.fillText(`預估覆蓋 ${coveredCount} 座`, cx, cy - supportSpec.supportAura.radius - 27);
         ctx.font = "10px sans-serif";
         ctx.fillStyle = "rgba(207,255,240,0.9)";
-        ctx.fillText(`新增DPS 約 +${Math.round(addedDps)}`, cx, cy - supportSpec.supportAura.radius - 14);
+        const pctGain = coveredBaseDps > 0 ? Math.round((addedDps / coveredBaseDps) * 100) : 0;
+        ctx.fillText(`新增DPS 約 +${Math.round(addedDps)}（+${pctGain}%）`, cx, cy - supportSpec.supportAura.radius - 14);
       }
       ctx.strokeStyle = valid ? "rgba(141,255,185,0.85)" : "rgba(255,123,123,0.85)";
       ctx.lineWidth = 2;
@@ -923,17 +930,51 @@ function drawOverlay() {
     ctx.fillText(`HP ${(hpRatio * 100).toFixed(0)}%｜盾 ${Math.max(0, boss.bossShieldHp).toFixed(0)}`, canvas.width - 252, 47);
     ctx.fillText(`下一技能：${nextHint}`, canvas.width - 252, 63);
     if (historyItems.length) {
-      const historyText = historyItems.map((item) => `${item.icon ?? "•"}${item.label}`).join("  ");
       ctx.fillStyle = "rgba(231, 251, 255, 0.82)";
       ctx.font = "10px sans-serif";
-      ctx.fillText(`已觸發：${historyText}`, canvas.width - 252, 79);
+      ctx.fillText("已觸發：", canvas.width - 252, 79);
+      let chipX = canvas.width - 212;
+      const chipY = 70;
+      for (const item of historyItems) {
+        const chipText = `${item.icon ?? "•"} ${item.label}`;
+        const chipW = Math.max(36, Math.ceil(ctx.measureText(chipText).width) + 12);
+        const color = item.label.includes("護盾")
+          ? "rgba(125,233,255,0.18)"
+          : item.label.includes("召喚")
+            ? "rgba(255,209,102,0.18)"
+            : item.label.includes("狂暴")
+              ? "rgba(255,123,123,0.18)"
+              : "rgba(231,251,255,0.12)";
+        const stroke = item.label.includes("護盾")
+          ? "rgba(125,233,255,0.35)"
+          : item.label.includes("召喚")
+            ? "rgba(255,209,102,0.35)"
+            : item.label.includes("狂暴")
+              ? "rgba(255,123,123,0.35)"
+              : "rgba(231,251,255,0.22)";
+        ctx.fillStyle = color;
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(chipX, chipY, chipW, 14, 6);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#e7fbff";
+        ctx.font = "10px sans-serif";
+        ctx.fillText(chipText, chipX + 6, chipY + 10);
+        chipX += chipW + 6;
+        if (chipX > canvas.width - 30) break;
+      }
     }
   }
 
   if (game.displaySettings?.showPerfStats !== false) {
     const spriteMode = game.displaySettings?.spriteQuality ?? "高";
     const pressure = (game.fishes?.length ?? 0) + ((game.bullets?.length ?? 0) * 0.5) + ((game.particles?.length ?? 0) * 0.12);
-    const spriteActual = spriteMode !== "自動" ? spriteMode : (pressure > 85 ? "低" : "高");
+    const thresholdMap = { "低": 65, "中": 85, "高": 110 };
+    const autoThresholdLabel = game.displaySettings?.spriteAutoThreshold ?? "中";
+    const autoThreshold = thresholdMap[autoThresholdLabel] ?? 85;
+    const spriteActual = spriteMode !== "自動" ? spriteMode : (pressure > autoThreshold ? "低" : "高");
     if (spriteMode === "自動") {
       if (autoSpriteActualLast == null) {
         autoSpriteActualLast = spriteActual;
@@ -956,7 +997,7 @@ function drawOverlay() {
     ctx.font = "11px sans-serif";
     ctx.textAlign = "left";
     ctx.fillText(`FPS ${perfFps || 0}｜魚 ${game.fishes.length}｜彈 ${game.bullets.length}｜粒子 ${game.particles.length}`, 24, canvas.height - 62);
-    ctx.fillText(`貼圖品質 ${spriteMode}${spriteMode === "自動" ? `→${spriteActual}` : ""}｜壓力 ${pressure.toFixed(0)}`, 24, canvas.height - 44);
+    ctx.fillText(`貼圖品質 ${spriteMode}${spriteMode === "自動" ? `→${spriteActual}` : ""}｜壓力 ${pressure.toFixed(0)}${spriteMode === "自動" ? `｜門檻 ${autoThresholdLabel}` : ""}`, 24, canvas.height - 44);
     const lastSwitchAgo = autoSpriteLastSwitchAt > 0 ? `${((performance.now() - autoSpriteLastSwitchAt) / 1000).toFixed(1)}s前` : "—";
     ctx.fillText(`Auto切換 ${autoSpriteSwitchCount} 次｜最近 ${lastSwitchAgo}`, 24, canvas.height - 26);
   }

@@ -81,6 +81,7 @@ export const menu = {
   showDamageText: document.getElementById("menuShowDamageText"),
   fxDensity: document.getElementById("menuFxDensity"),
   spriteQuality: document.getElementById("menuSpriteQuality"),
+  spriteAutoThreshold: document.getElementById("menuSpriteAutoThreshold"),
   showTowerPanel: document.getElementById("menuShowTowerPanel"),
   showPerfStats: document.getElementById("menuShowPerfStats"),
   resetSettingsBtn: document.getElementById("menuResetSettingsBtn"),
