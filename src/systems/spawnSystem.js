@@ -11,6 +11,8 @@ export function createSpawnSystem({
 const autoWaveDelaySeconds = wavePlan.autoWaveDelaySeconds ?? 1.4;
 if (typeof game.autoWaveTimer !== "number") game.autoWaveTimer = autoWaveDelaySeconds;
 if (typeof game.autoWaveBonusPreview !== "number") game.autoWaveBonusPreview = 0;
+if (typeof game.autoWaveDelayTotal !== "number") game.autoWaveDelayTotal = autoWaveDelaySeconds;
+if (typeof game.earlyStartStreak !== "number") game.earlyStartStreak = 0;
 
 function calcEarlyStartBonus() {
   if (game.displaySettings?.autoStartWaves === false) return 0;
@@ -18,7 +20,9 @@ function calcEarlyStartBonus() {
   const remaining = Math.max(0, Number(game.autoWaveTimer ?? 0));
   if (remaining <= 0.02) return 0;
   const waveFactor = Math.min(8, Math.floor(Math.max(1, game.wave + 1) / 2));
-  return Math.max(1, Math.ceil(remaining * 4) + waveFactor);
+  const base = Math.max(1, Math.ceil(remaining * 4) + waveFactor);
+  const streakMult = 1 + Math.min(0.75, (game.earlyStartStreak ?? 0) * 0.1);
+  return Math.max(1, Math.round(base * streakMult));
 }
 
 function evalCountExpr(expr, wave) {
@@ -83,17 +87,22 @@ function buildWave(wave) {
     setMessage("本波魚群尚未結束。");
     return;
   }
+  const hadCountdown = (game.displaySettings?.autoStartWaves !== false) && (game.autoWaveTimer ?? 0) > 0.02;
   const earlyStartBonus = manual ? calcEarlyStartBonus() : 0;
   if (earlyStartBonus > 0) {
     game.gold += earlyStartBonus;
+    game.earlyStartStreak = (game.earlyStartStreak ?? 0) + 1;
     setMessage(`提前開波獎勵 +${earlyStartBonus} 金幣`);
     playSfx("build");
+  } else if (manual && !hadCountdown) {
+    game.earlyStartStreak = 0;
   }
   game.wave += 1;
   game.spawnQueue = buildWave(game.wave);
   game.spawnTimer = 0;
   game.waveActive = true;
   game.autoWaveTimer = autoWaveDelaySeconds;
+  game.autoWaveDelayTotal = autoWaveDelaySeconds;
   game.autoWaveBonusPreview = 0;
   const bossInterval = wavePlan.bossWave?.interval ?? 5;
   if (game.wave > 0 && game.wave % bossInterval === 0) {
@@ -116,6 +125,7 @@ function updateSpawning(dt) {
     if (maxWaves && game.wave >= maxWaves) return;
     if (game.displaySettings?.autoStartWaves === false) {
       game.autoWaveBonusPreview = 0;
+      game.earlyStartStreak = 0;
       updateHud();
       return;
     }
@@ -157,6 +167,7 @@ function updateSpawning(dt) {
     } else {
       setMessage(`第 ${game.wave} 波完成！準備下一波。`);
       game.autoWaveTimer = autoWaveDelaySeconds;
+      game.autoWaveDelayTotal = autoWaveDelaySeconds;
       game.autoWaveBonusPreview = calcEarlyStartBonus();
       updateHud();
     }

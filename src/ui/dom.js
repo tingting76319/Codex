@@ -36,6 +36,10 @@ export const hud = {
   towerInfoBranchABtn: document.getElementById("towerInfoBranchABtn"),
   towerInfoBranchBBtn: document.getElementById("towerInfoBranchBBtn"),
   clearConditionLabel: document.getElementById("clearConditionLabel")
+  ,waveAutoStatus: document.getElementById("waveAutoStatus")
+  ,waveAutoModeLabel: document.getElementById("waveAutoModeLabel")
+  ,waveAutoCountdownLabel: document.getElementById("waveAutoCountdownLabel")
+  ,waveAutoProgressBar: document.getElementById("waveAutoProgressBar")
 };
 
 export const menu = {

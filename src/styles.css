@@ -796,6 +796,38 @@ body {
   gap: 10px;
 }
 
+.wave-auto-status {
+  margin-top: 8px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(125, 233, 255, 0.12);
+  background: rgba(125, 233, 255, 0.03);
+}
+
+.wave-auto-status .row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: #d8f6ff;
+  margin-bottom: 6px;
+}
+
+.wave-auto-status .track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.06);
+  overflow: hidden;
+}
+
+.wave-auto-status .fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, rgba(125,233,255,0.8), rgba(141,255,185,0.85));
+  transition: width 120ms linear;
+}
+
 button {
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.04);
