@@ -865,6 +865,14 @@ body {
   color: #e9fbff;
 }
 
+.shortcut-quick-popover .group-title {
+  margin-top: 2px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: #99c8d4;
+  text-transform: uppercase;
+}
+
 .shortcut-quick-popover .row {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -1324,12 +1332,39 @@ button.is-active {
 }
 
 .result-stats .item .share-bar {
+  position: relative;
   display: grid;
   grid-template-columns: auto 1fr auto;
   gap: 8px;
   align-items: center;
   font-size: 11px;
   color: #cfeaf2;
+}
+
+.result-stats .item .share-bar::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  opacity: 0;
+  transform: translateY(2px);
+  pointer-events: none;
+  white-space: nowrap;
+  border-radius: 8px;
+  border: 1px solid rgba(125,233,255,0.22);
+  background: rgba(8, 21, 30, 0.95);
+  color: #e8fbff;
+  font-size: 10px;
+  padding: 4px 7px;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.22);
+  transition: opacity 120ms ease, transform 120ms ease;
+  z-index: 2;
+}
+
+.result-stats .item .share-bar:hover::after,
+.result-stats .item .share-bar:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .result-stats .item .share-bar span {

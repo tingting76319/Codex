@@ -98,6 +98,7 @@ export const menu = {
   codexSizeFilter: document.getElementById("menuCodexSizeFilter"),
   codexSkillFilter: document.getElementById("menuCodexSkillFilter"),
   bossEarlyCueStrength: document.getElementById("menuBossEarlyCueStrength"),
+  bossEarlyCuePreviewBtn: document.getElementById("menuBossEarlyCuePreviewBtn"),
   goStagesBtn: document.getElementById("menuGoStagesBtn"),
   stageStartBtn: document.getElementById("menuStageStartBtn"),
   backHomeBtn: document.getElementById("menuBackHomeBtn"),

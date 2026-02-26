@@ -1282,9 +1282,10 @@ function openResultOverlay({ victory }) {
     ? condBonusBreakdown.map((entry) => {
       const pct = Math.round((entry.bonus ?? 0) * 100);
       const share = Math.max(1, Math.round((pct / condBonusPctTotal) * 100));
-      return `<div class="share-bar"><span>${entry.label}</span><div class="track"><div class="fill" style="width:${Math.max(4, Math.min(100, share))}%"></div></div><strong>${share}%</strong></div>`;
+      const tip = `${entry.label}：加成 +${pct}%（占條件加成 ${share}%）`;
+      return `<div class="share-bar" tabindex="0" data-tip="${tip}"><span>${entry.label}</span><div class="track"><div class="fill" style="width:${Math.max(4, Math.min(100, share))}%"></div></div><strong>${share}%</strong></div>`;
     }).join("")
-    : `<div class="share-bar is-empty"><span>無</span><div class="track"><div class="fill" style="width:0%"></div></div><strong>0%</strong></div>`;
+    : `<div class="share-bar is-empty" tabindex="0" data-tip="沒有額外條件加成"><span>無</span><div class="track"><div class="fill" style="width:0%"></div></div><strong>0%</strong></div>`;
   const condBonusCapNote = condBonusMult >= 1.35 ? "（已達條件加成上限）" : "";
   resultUi.stats.innerHTML = `
     <div class="item"><span>地圖 / 關卡</span><strong>${game.mapShortLabel} / ${game.stageShortLabel}</strong></div>
@@ -1755,6 +1756,11 @@ menu.bossEarlyCueStrength?.addEventListener("change", () => {
   persistSettings();
   syncMenuSettingsUi();
   setMessage(`Boss提前開波音效強度：${game.displaySettings.bossEarlyCueStrength}`);
+});
+menu.bossEarlyCuePreviewBtn?.addEventListener("click", () => {
+  ensureAudio();
+  playSfx("waveEarlyBoss");
+  setMessage(`已預聽 Boss提前開波音效（${game.displaySettings.bossEarlyCueStrength}）`);
 });
 menu.resetSettingsBtn?.addEventListener("click", () => {
   game.audioMuted = false;
