@@ -271,6 +271,8 @@
             <button id="towerTypeBasicBtn" class="tower-type-btn is-active">標準塔 (40)</button>
             <button id="towerTypeSlowBtn" class="tower-type-btn">緩速塔 (55)</button>
             <button id="towerTypeSplashBtn" class="tower-type-btn">範圍塔 (70)</button>
+            <button id="towerTypeSniperBtn" class="tower-type-btn">狙擊塔 (85)</button>
+            <button id="towerTypeSupportBtn" class="tower-type-btn">支援塔 (75)</button>
           </div>
           <p>點擊切換欲部署塔種，再點地圖放置。</p>
         </div>
@@ -280,14 +282,19 @@
             <p id="towerInfoTitle">未選取塔台</p>
             <p id="towerInfoMeta">點擊已部署塔台查看屬性與分支狀態。</p>
             <div id="towerInfoStats"></div>
+            <div id="towerInfoActions" class="tower-info-actions">
+              <button id="towerInfoUpgradeBtn">升級</button>
+              <button id="towerInfoBranchABtn">分支 A</button>
+              <button id="towerInfoBranchBBtn">分支 B</button>
+            </div>
           </div>
         </div>
         <div class="tower-card">
           <h2>部署塔台</h2>
           <p>點擊海域格子放置目前選擇的塔台（依塔種成本），再點同一塔台可升級</p>
           <ul>
-            <li>初始: 傷害 16 / 射程中 / 攻速快</li>
-            <li>升級: 提升傷害、射程、攻速</li>
+            <li>塔種: 標準 / 緩速 / 範圍 / 狙擊 / 支援</li>
+            <li>升級: 提升傷害、射程、攻速（支援塔提升光環強度）</li>
             <li>最高等級: Lv.4</li>
             <li>分支技能樹: Shift+點塔(路線A) / Alt+點塔(路線B)</li>
           </ul>

@@ -25,10 +25,16 @@ export const hud = {
   towerTypeBasicBtn: document.getElementById("towerTypeBasicBtn"),
   towerTypeSlowBtn: document.getElementById("towerTypeSlowBtn"),
   towerTypeSplashBtn: document.getElementById("towerTypeSplashBtn"),
+  towerTypeSniperBtn: document.getElementById("towerTypeSniperBtn"),
+  towerTypeSupportBtn: document.getElementById("towerTypeSupportBtn"),
   towerInfoPanel: document.getElementById("towerInfoPanel"),
   towerInfoTitle: document.getElementById("towerInfoTitle"),
   towerInfoMeta: document.getElementById("towerInfoMeta"),
   towerInfoStats: document.getElementById("towerInfoStats"),
+  towerInfoActions: document.getElementById("towerInfoActions"),
+  towerInfoUpgradeBtn: document.getElementById("towerInfoUpgradeBtn"),
+  towerInfoBranchABtn: document.getElementById("towerInfoBranchABtn"),
+  towerInfoBranchBBtn: document.getElementById("towerInfoBranchBBtn"),
   clearConditionLabel: document.getElementById("clearConditionLabel")
 };
 

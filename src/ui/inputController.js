@@ -7,6 +7,9 @@ export function bindInputHandlers({
   onTogglePause,
   onToggleSpeed,
   onSelectTowerType,
+  onTowerPanelUpgrade,
+  onTowerPanelBranchA,
+  onTowerPanelBranchB,
   onToggleMute,
   onBgmVolumeInput,
   onSfxVolumeInput,
@@ -85,6 +88,11 @@ export function bindInputHandlers({
   bindPress(hud.towerTypeBasicBtn, () => onSelectTowerType?.("basic"));
   bindPress(hud.towerTypeSlowBtn, () => onSelectTowerType?.("slow"));
   bindPress(hud.towerTypeSplashBtn, () => onSelectTowerType?.("splash"));
+  bindPress(hud.towerTypeSniperBtn, () => onSelectTowerType?.("sniper"));
+  bindPress(hud.towerTypeSupportBtn, () => onSelectTowerType?.("support"));
+  bindPress(hud.towerInfoUpgradeBtn, onTowerPanelUpgrade);
+  bindPress(hud.towerInfoBranchABtn, onTowerPanelBranchA);
+  bindPress(hud.towerInfoBranchBBtn, onTowerPanelBranchB);
   bindPress(hud.muteBtn, onToggleMute);
   hud.bgmVolume?.addEventListener("input", onBgmVolumeInput);
   hud.sfxVolume?.addEventListener("input", onSfxVolumeInput);

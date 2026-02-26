@@ -268,7 +268,7 @@ function gridFromMouse(event) {
   return { x, y, cellX, cellY };
 }
 
-const { makeTower, placeTower, upgradeTower, upgradeTowerBranch, setSelectedTowerType } = createTowerSystem({
+const { makeTower, placeTower, upgradeTower, upgradeTowerBranch, setSelectedTowerType, getTowerBranchOptions } = createTowerSystem({
   game,
   GRID,
   pathCellSet,
@@ -565,11 +565,38 @@ function selectedTower() {
 function refreshTowerInfoPanel() {
   if (!hud.towerInfoPanel) return;
   const tower = selectedTower();
+  const disableActions = (reasonText = "") => {
+    if (hud.towerInfoActions) hud.towerInfoActions.classList.add("is-disabled");
+    if (hud.towerInfoUpgradeBtn) {
+      hud.towerInfoUpgradeBtn.disabled = true;
+      hud.towerInfoUpgradeBtn.textContent = "升級";
+      hud.towerInfoUpgradeBtn.classList.remove("is-ready", "is-selected");
+      if (reasonText) hud.towerInfoUpgradeBtn.title = reasonText;
+    }
+    if (hud.towerInfoBranchABtn) {
+      hud.towerInfoBranchABtn.disabled = true;
+      hud.towerInfoBranchABtn.textContent = "分支 A";
+      hud.towerInfoBranchABtn.classList.remove("is-ready", "is-selected");
+      if (reasonText) hud.towerInfoBranchABtn.title = reasonText;
+    }
+    if (hud.towerInfoBranchBBtn) {
+      hud.towerInfoBranchBBtn.disabled = true;
+      hud.towerInfoBranchBBtn.textContent = "分支 B";
+      hud.towerInfoBranchBBtn.classList.remove("is-ready", "is-selected");
+      if (reasonText) hud.towerInfoBranchBBtn.title = reasonText;
+    }
+  };
+  const clearActionTitles = () => {
+    for (const btn of [hud.towerInfoUpgradeBtn, hud.towerInfoBranchABtn, hud.towerInfoBranchBBtn]) {
+      if (btn) btn.title = "";
+    }
+  };
   if (!game.displaySettings.showTowerPanel) {
     hud.towerInfoPanel.classList.add("is-empty");
     if (hud.towerInfoTitle) hud.towerInfoTitle.textContent = "塔台資訊已關閉";
     if (hud.towerInfoMeta) hud.towerInfoMeta.textContent = "可在設定中重新開啟塔台資訊面板。";
     if (hud.towerInfoStats) hud.towerInfoStats.innerHTML = "";
+    disableActions("塔台資訊面板已關閉");
     return;
   }
   if (!tower) {
@@ -577,9 +604,12 @@ function refreshTowerInfoPanel() {
     if (hud.towerInfoTitle) hud.towerInfoTitle.textContent = "未選取塔台";
     if (hud.towerInfoMeta) hud.towerInfoMeta.textContent = "點擊已部署塔台查看屬性與分支狀態。";
     if (hud.towerInfoStats) hud.towerInfoStats.innerHTML = "";
+    disableActions("請先選取塔台");
     return;
   }
   hud.towerInfoPanel.classList.remove("is-empty");
+  hud.towerInfoActions?.classList.remove("is-disabled");
+  clearActionTitles();
   if (hud.towerInfoTitle) hud.towerInfoTitle.textContent = `${tower.typeLabel} Lv.${tower.level}`;
   if (hud.towerInfoMeta) {
     const branch = tower.branchLabel ? `｜${tower.branchLabel}${tower.branchTier ? ` ${tower.branchTier}` : ""}` : "";
@@ -600,10 +630,57 @@ function refreshTowerInfoPanel() {
     ];
     if (tower.slow) rows.push(["緩速", `${Math.round((1 - tower.slow.multiplier) * 100)}% / ${tower.slow.duration.toFixed(1)}s`]);
     if (tower.splashRadius) rows.push(["範圍", `${Math.round(tower.splashRadius)} (${Math.round((tower.splashRatio ?? 0) * 100)}%)`]);
+    if (tower.critChance) rows.push(["暴擊", `${Math.round((tower.critChance ?? 0) * 100)}% x${(tower.critMultiplier ?? 1).toFixed(2)}`]);
+    if (tower.supportAura) {
+      rows.push(["增益光環", `半徑 ${Math.round(tower.supportAura.radius)}｜傷害 x${(tower.supportAura.damageMult ?? 1).toFixed(2)}`]);
+      rows.push(["輔助效果", `攻速 x${(tower.supportAura.fireRateMult ?? 1).toFixed(2)}｜射程 +${Math.round(tower.supportAura.rangeBonus ?? 0)}`]);
+    }
     if (tower.armorBreak) rows.push(["破甲", `${Math.round((tower.armorBreak.amount ?? 0) * 100)}%`]);
     if (tower.burn) rows.push(["灼燒", `${Math.round(tower.burn.dps ?? 0)} DPS`]);
     hud.towerInfoStats.innerHTML = rows.map(([k, v]) => `<div class="row"><span>${k}</span><strong>${v}</strong></div>`).join("");
   }
+
+  const options = getTowerBranchOptions?.(tower) ?? {};
+  const branchA = options.A;
+  const branchB = options.B;
+  if (hud.towerInfoUpgradeBtn) {
+    const canUpgrade = tower.level < 4 && game.gold >= tower.upgradeCost;
+    hud.towerInfoUpgradeBtn.disabled = tower.level >= 4 || game.gold < tower.upgradeCost;
+    hud.towerInfoUpgradeBtn.textContent = tower.level >= 4 ? "已滿級" : `升級 (${tower.upgradeCost})`;
+    hud.towerInfoUpgradeBtn.classList.toggle("is-ready", canUpgrade);
+  }
+  const syncBranchButton = (btn, slot, branch) => {
+    if (!btn) return;
+    if (!branch) {
+      btn.disabled = true;
+      btn.textContent = `分支 ${slot}`;
+      return;
+    }
+    const isSelected = tower.branchPath === branch.key;
+    const currentTier = isSelected ? (tower.branchTier ?? 0) : 0;
+    const nextTier = currentTier + 1;
+    const unlockLevel = nextTier <= 1 ? 2 : 4;
+    const cost = nextTier <= 1 ? branch.cost1 : branch.cost2;
+    const lockedByOther = tower.branchPath && !isSelected;
+    const atMax = isSelected && currentTier >= 2;
+    const levelLocked = tower.level < unlockLevel;
+    const goldLocked = !atMax && !lockedByOther && game.gold < cost;
+    btn.disabled = lockedByOther || atMax || levelLocked || goldLocked;
+    btn.classList.toggle("is-selected", isSelected);
+    btn.classList.toggle("is-ready", !btn.disabled && !atMax);
+    if (atMax) {
+      btn.textContent = `${branch.label} 已滿`;
+    } else if (lockedByOther) {
+      btn.textContent = `${branch.label}（已鎖）`;
+    } else {
+      const tierText = nextTier <= 1 ? "I" : "II";
+      btn.textContent = `${branch.label} ${tierText} (${cost})`;
+    }
+    if (levelLocked) btn.title = `需 Lv.${unlockLevel}`;
+    else if (goldLocked) btn.title = `金幣不足：${cost}`;
+  };
+  syncBranchButton(hud.towerInfoBranchABtn, "A", branchA);
+  syncBranchButton(hud.towerInfoBranchBBtn, "B", branchB);
 }
 
 function showBossAlert(text, { badge = "警報", duration = 2.2 } = {}) {
@@ -1222,6 +1299,33 @@ bindInputHandlers({
     markTowerSeen(towerType);
     setSelectedTowerType(towerType);
     refreshTowerInfoPanel();
+  },
+  onTowerPanelUpgrade: () => {
+    const tower = selectedTower();
+    if (!tower) return;
+    ensureAudio();
+    if (upgradeTower(tower)) {
+      game.stats.towerUpgrades += 1;
+      refreshTowerInfoPanel();
+    }
+  },
+  onTowerPanelBranchA: () => {
+    const tower = selectedTower();
+    if (!tower) return;
+    ensureAudio();
+    if (upgradeTowerBranch(tower, "A")) {
+      game.stats.branchUpgrades += 1;
+      refreshTowerInfoPanel();
+    }
+  },
+  onTowerPanelBranchB: () => {
+    const tower = selectedTower();
+    if (!tower) return;
+    ensureAudio();
+    if (upgradeTowerBranch(tower, "B")) {
+      game.stats.branchUpgrades += 1;
+      refreshTowerInfoPanel();
+    }
   },
   onToggleMute: () => {
     ensureAudio();

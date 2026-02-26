@@ -15,7 +15,9 @@ export function createHudController({ hud, game, updateAudioHud }) {
     const activeButtons = {
       basic: hud.towerTypeBasicBtn,
       slow: hud.towerTypeSlowBtn,
-      splash: hud.towerTypeSplashBtn
+      splash: hud.towerTypeSplashBtn,
+      sniper: hud.towerTypeSniperBtn,
+      support: hud.towerTypeSupportBtn
     };
     for (const btn of Object.values(activeButtons)) {
       if (btn) btn.classList.remove("is-active");

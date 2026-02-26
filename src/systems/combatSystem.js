@@ -3,12 +3,13 @@ function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-function acquireTarget(tower) {
+function acquireTarget(tower, rangeOverride = null) {
+  const effectiveRange = rangeOverride ?? tower.range;
   let best = null;
   let bestScore = -Infinity;
   for (const fish of game.fishes) {
     const d = distance(tower, fish);
-    if (d > tower.range) continue;
+    if (d > effectiveRange) continue;
     const score = fish.pathIndex * 1000 - d + fish.hp * 0.02;
     if (score > bestScore) {
       bestScore = score;
@@ -19,17 +20,59 @@ function acquireTarget(tower) {
 }
 
 function updateTowers(dt) {
+  const supportBuffs = new Map();
+  const supportTowers = game.towers.filter((t) => t.typeKey === "support" && t.supportAura);
+  for (const supportTower of supportTowers) {
+    supportTower.supportPulseTimer = (supportTower.supportPulseTimer ?? 0) - dt;
+    if (supportTower.supportPulseTimer <= 0) {
+      supportTower.supportPulseTimer = 0.9;
+      game.particles.push({
+        x: supportTower.x,
+        y: supportTower.y,
+        vx: 0,
+        vy: 0,
+        life: 0.35,
+        color: "rgba(141,255,185,0.85)",
+        ringRadius: supportTower.supportAura.radius
+      });
+    }
+    for (const tower of game.towers) {
+      if (tower.id === supportTower.id || tower.typeKey === "support") continue;
+      const d = distance(supportTower, tower);
+      if (d > supportTower.supportAura.radius) continue;
+      const current = supportBuffs.get(tower.id) ?? {
+        damageMult: 1,
+        fireRateMult: 1,
+        rangeBonus: 0,
+        critBonus: 0,
+        armorBreakBonus: 0
+      };
+      current.damageMult *= supportTower.supportAura.damageMult ?? 1;
+      current.fireRateMult *= supportTower.supportAura.fireRateMult ?? 1;
+      current.rangeBonus += supportTower.supportAura.rangeBonus ?? 0;
+      current.critBonus += supportTower.supportAura.critBonus ?? 0;
+      current.armorBreakBonus += supportTower.supportAura.armorBreakBonus ?? 0;
+      supportBuffs.set(tower.id, current);
+    }
+  }
+
   for (const tower of game.towers) {
+    if (tower.typeKey === "support") continue;
     tower.cooldown -= dt;
     if (tower.cooldown > 0) continue;
-    const target = acquireTarget(tower);
+    const buff = supportBuffs.get(tower.id);
+    const effectiveRange = tower.range + (buff?.rangeBonus ?? 0);
+    const effectiveDamage = tower.damage * (buff?.damageMult ?? 1);
+    const effectiveCritChance = Math.min(0.95, (tower.critChance ?? 0) + (buff?.critBonus ?? 0));
+    const target = acquireTarget(tower, effectiveRange);
     if (!target) continue;
-    tower.cooldown = tower.fireRate;
+    tower.cooldown = Math.max(0.08, tower.fireRate * (buff?.fireRateMult ?? 1));
+    const damageVsTarget = target.isBoss ? effectiveDamage * (tower.bossBonus ?? 1) : effectiveDamage;
     game.bullets.push({
       x: tower.x,
       y: tower.y,
       target,
-      damage: tower.damage,
+      damage: damageVsTarget,
       speed: tower.projectileSpeed,
       towerLevel: tower.level,
       color: tower.color,
@@ -37,20 +80,28 @@ function updateTowers(dt) {
       slow: tower.slow ? { ...tower.slow } : null,
       splashRadius: tower.splashRadius,
       splashRatio: tower.splashRatio,
-      critChance: tower.critChance ?? 0,
+      critChance: effectiveCritChance,
       critMultiplier: tower.critMultiplier ?? 1,
       rapidDoubleShotChance: tower.rapidDoubleShotChance ?? 0,
       slowPulseRadius: tower.slowPulseRadius ?? 0,
       armorBreak: tower.armorBreak ? { ...tower.armorBreak } : null,
-      burn: tower.burn ? { ...tower.burn } : null
+      burn: tower.burn ? { ...tower.burn } : null,
+      executeThreshold: tower.executeThreshold ?? 0,
+      armorPierceBonus: tower.armorPierceBonus ?? 0,
+      buffedRange: effectiveRange
     });
-    playSfx(tower.typeKey === "slow" ? "shotSlow" : tower.typeKey === "splash" ? "shotSplash" : "shotBasic");
+    playSfx(
+      tower.typeKey === "slow" ? "shotSlow"
+        : tower.typeKey === "splash" ? "shotSplash"
+          : tower.typeKey === "sniper" ? "shotSplash"
+            : "shotBasic"
+    );
     if (tower.rapidDoubleShotChance && Math.random() < tower.rapidDoubleShotChance) {
       game.bullets.push({
         x: tower.x + (Math.random() * 6 - 3),
         y: tower.y + (Math.random() * 6 - 3),
         target,
-        damage: tower.damage * 0.65,
+        damage: damageVsTarget * 0.65,
         speed: tower.projectileSpeed + 20,
         towerLevel: tower.level,
         color: tower.color,
@@ -63,7 +114,9 @@ function updateTowers(dt) {
         rapidDoubleShotChance: 0,
         slowPulseRadius: tower.slowPulseRadius ?? 0,
         armorBreak: tower.armorBreak ? { ...tower.armorBreak } : null,
-        burn: tower.burn ? { ...tower.burn } : null
+        burn: tower.burn ? { ...tower.burn } : null,
+        executeThreshold: 0,
+        armorPierceBonus: tower.armorPierceBonus ?? 0
       });
       playSfx("shotBasic");
     }
@@ -215,7 +268,7 @@ function applyDamageToFish(target, bullet, damageFactor = 1) {
     return false;
   }
   const armorRatio = getEffectiveArmorRatio(target);
-  const levelPierce = bullet.towerLevel >= 3 ? 1.08 : 1;
+  const levelPierce = (bullet.towerLevel >= 3 ? 1.08 : 1) + (bullet.armorPierceBonus ?? 0);
   const crit = bullet.critChance && Math.random() < bullet.critChance ? (bullet.critMultiplier || 1.8) : 1;
   const actualDamage = bullet.damage * damageFactor * armorRatio * levelPierce * crit;
   floatText(target.x, target.y, `${Math.round(actualDamage)}${crit > 1 ? "!" : ""}`, crit > 1 ? "#ffd166" : "#e7fbff", crit > 1 ? 13 : 12);
@@ -237,6 +290,9 @@ function applyDamageToFish(target, bullet, damageFactor = 1) {
     }
   }
   triggerBossSkillsOnHpThresholds(target);
+  if (bullet.executeThreshold && target.hp > 0 && target.hp / target.maxHp <= bullet.executeThreshold) {
+    target.hp = 0;
+  }
   if (target.hp <= 0) {
     handleFishDeath(target);
     return true;

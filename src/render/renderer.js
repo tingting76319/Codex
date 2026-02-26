@@ -113,11 +113,52 @@ function drawTowers() {
       ctx.closePath();
       ctx.fill();
     }
+    if (tower.typeKey === "sniper") {
+      ctx.strokeStyle = "rgba(216, 220, 255, 0.9)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(tower.x - 12, tower.y - 10);
+      ctx.lineTo(tower.x + 14, tower.y + 10);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(tower.x + 8, tower.y + 6, 3.5, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    if (tower.typeKey === "support") {
+      ctx.strokeStyle = "rgba(141, 255, 185, 0.85)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(tower.x, tower.y, 13, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(tower.x, tower.y - 10);
+      ctx.lineTo(tower.x, tower.y + 10);
+      ctx.moveTo(tower.x - 10, tower.y);
+      ctx.lineTo(tower.x + 10, tower.y);
+      ctx.stroke();
+      if (tower.supportAura?.radius) {
+        ctx.strokeStyle = "rgba(141,255,185,0.2)";
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([4, 6]);
+        ctx.beginPath();
+        ctx.arc(tower.x, tower.y, tower.supportAura.radius, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
 
     ctx.fillStyle = "#e7fbff";
     ctx.font = "bold 11px sans-serif";
     ctx.textAlign = "center";
-    const shortType = tower.typeKey === "slow" ? "緩" : tower.typeKey === "splash" ? "範" : "標";
+    const shortType = tower.typeKey === "slow"
+      ? "緩"
+      : tower.typeKey === "splash"
+        ? "範"
+        : tower.typeKey === "sniper"
+          ? "狙"
+          : tower.typeKey === "support"
+            ? "輔"
+            : "標";
     ctx.fillText(`${shortType} Lv${tower.level}`, tower.x, tower.y + 31);
     if (tower.branchPath) {
       ctx.fillStyle = "rgba(255, 209, 102, 0.95)";
@@ -498,6 +539,15 @@ function drawParticles() {
       ctx.font = `bold ${p.fontSize || 12}px sans-serif`;
       ctx.textAlign = "center";
       ctx.fillText(p.text, p.x, p.y);
+      continue;
+    }
+    if (p.ringRadius) {
+      ctx.globalAlpha = Math.max(0, p.life) * 0.7;
+      ctx.strokeStyle = p.color || "#8dffb9";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.ringRadius * (1 - Math.max(0, p.life) * 0.2), 0, Math.PI * 2);
+      ctx.stroke();
       continue;
     }
     ctx.globalAlpha = Math.max(0, p.life);

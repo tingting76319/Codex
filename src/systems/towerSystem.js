@@ -20,6 +20,10 @@ function makeTower(cellX, cellY, typeKey = "basic") {
     slow: spec.slow ? { ...spec.slow } : null,
     splashRadius: spec.splashRadius ?? 0,
     splashRatio: spec.splashRatio ?? 0,
+    critChance: spec.critChance ?? 0,
+    critMultiplier: spec.critMultiplier ?? 1.8,
+    supportAura: spec.supportAura ? { ...spec.supportAura } : null,
+    supportPulseTimer: 0,
     branchPath: null,
     branchLabel: "",
     branchTier: 0
@@ -37,6 +41,18 @@ function getTowerBranchOptions(tower) {
     return {
       A: { key: "glacier", label: "寒潮路線", cost1: 95, cost2: 150 },
       B: { key: "breaker", label: "破甲路線", cost1: 95, cost2: 150 }
+    };
+  }
+  if (tower.typeKey === "sniper") {
+    return {
+      A: { key: "execution", label: "處決路線", cost1: 115, cost2: 175 },
+      B: { key: "pierce", label: "穿透路線", cost1: 115, cost2: 175 }
+    };
+  }
+  if (tower.typeKey === "support") {
+    return {
+      A: { key: "overclock", label: "超頻路線", cost1: 105, cost2: 165 },
+      B: { key: "fortify", label: "強化路線", cost1: 105, cost2: 165 }
     };
   }
   return {
@@ -80,10 +96,28 @@ function upgradeTower(tower) {
   }
   game.gold -= tower.upgradeCost;
   tower.level += 1;
-  tower.damage += tower.typeKey === "slow" ? 4 : tower.typeKey === "splash" ? 7 : 8;
-  tower.range += tower.typeKey === "slow" ? 14 : 18;
-  tower.fireRate = Math.max(tower.typeKey === "splash" ? 0.45 : 0.2, tower.fireRate * 0.9);
-  tower.projectileSpeed += 35;
+  if (tower.typeKey === "support") {
+    tower.range += 12;
+    if (tower.supportAura) {
+      tower.supportAura.radius += 12;
+      tower.supportAura.damageMult = Math.min(1.55, tower.supportAura.damageMult + 0.03);
+      tower.supportAura.fireRateMult = Math.max(0.62, tower.supportAura.fireRateMult - 0.03);
+      tower.supportAura.rangeBonus += 3;
+      tower.supportAura.critBonus = Math.min(0.3, (tower.supportAura.critBonus ?? 0) + 0.02);
+    }
+  } else {
+    tower.damage += tower.typeKey === "slow" ? 4 : tower.typeKey === "splash" ? 7 : tower.typeKey === "sniper" ? 14 : 8;
+    tower.range += tower.typeKey === "slow" ? 14 : tower.typeKey === "sniper" ? 20 : 18;
+    if (tower.typeKey === "sniper") {
+      tower.fireRate = Math.max(0.75, tower.fireRate * 0.93);
+      tower.projectileSpeed += 48;
+      tower.critChance = Math.min(0.6, (tower.critChance ?? 0) + 0.03);
+      tower.critMultiplier = Math.min(3.4, (tower.critMultiplier ?? 1.8) + 0.08);
+    } else {
+      tower.fireRate = Math.max(tower.typeKey === "splash" ? 0.45 : 0.2, tower.fireRate * 0.9);
+      tower.projectileSpeed += 35;
+    }
+  }
   if (tower.slow) {
     tower.slow.duration += 0.12;
     tower.slow.multiplier = Math.max(0.34, tower.slow.multiplier - 0.05);
@@ -141,6 +175,29 @@ function applyTowerBranchEffects(tower, branchKey, tier) {
       };
       tower.damage += tier === 1 ? 4 : 6;
       tower.splashRadius += tier === 1 ? 8 : 10;
+    }
+  } else if (tower.typeKey === "sniper") {
+    if (branchKey === "execution") {
+      tower.critChance = Math.min(0.8, (tower.critChance ?? 0) + (tier === 1 ? 0.18 : 0.12));
+      tower.critMultiplier = Math.min(4.2, (tower.critMultiplier ?? 1.9) + (tier === 1 ? 0.45 : 0.35));
+      tower.executeThreshold = Math.min(0.28, (tower.executeThreshold ?? 0) + (tier === 1 ? 0.12 : 0.08));
+      tower.damage += tier === 1 ? 12 : 14;
+    } else if (branchKey === "pierce") {
+      tower.bossBonus = Math.min(1.9, (tower.bossBonus ?? 1) + (tier === 1 ? 0.28 : 0.22));
+      tower.armorPierceBonus = Math.min(0.45, (tower.armorPierceBonus ?? 0) + (tier === 1 ? 0.18 : 0.12));
+      tower.range += tier === 1 ? 22 : 16;
+      tower.damage += tier === 1 ? 8 : 10;
+    }
+  } else if (tower.typeKey === "support") {
+    if (!tower.supportAura) return;
+    if (branchKey === "overclock") {
+      tower.supportAura.fireRateMult = Math.max(0.5, tower.supportAura.fireRateMult - (tier === 1 ? 0.07 : 0.05));
+      tower.supportAura.damageMult = Math.min(1.7, tower.supportAura.damageMult + (tier === 1 ? 0.04 : 0.03));
+      tower.supportAura.critBonus = Math.min(0.45, (tower.supportAura.critBonus ?? 0) + (tier === 1 ? 0.06 : 0.04));
+    } else if (branchKey === "fortify") {
+      tower.supportAura.radius += tier === 1 ? 22 : 18;
+      tower.supportAura.rangeBonus += tier === 1 ? 10 : 8;
+      tower.supportAura.armorBreakBonus = Math.min(0.18, (tower.supportAura.armorBreakBonus ?? 0) + (tier === 1 ? 0.08 : 0.05));
     }
   }
 }
@@ -208,5 +265,5 @@ function setSelectedTowerType(typeKey) {
   updateHud();
 }
 
-  return { makeTower, placeTower, upgradeTower, upgradeTowerBranch, setSelectedTowerType };
+  return { makeTower, placeTower, upgradeTower, upgradeTowerBranch, setSelectedTowerType, getTowerBranchOptions };
 }

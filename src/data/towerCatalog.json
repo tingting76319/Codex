@@ -34,5 +34,33 @@
     "upgradeCost": 88,
     "splashRadius": 70,
     "splashRatio": 0.65
+  },
+  "sniper": {
+    "label": "狙擊塔",
+    "color": "#d8dcff",
+    "cost": 85,
+    "range": 250,
+    "fireRate": 1.35,
+    "damage": 44,
+    "projectileSpeed": 520,
+    "upgradeCost": 110,
+    "critChance": 0.12,
+    "critMultiplier": 1.9
+  },
+  "support": {
+    "label": "支援塔",
+    "color": "#8dffb9",
+    "cost": 75,
+    "range": 125,
+    "fireRate": 1.2,
+    "damage": 0,
+    "projectileSpeed": 0,
+    "upgradeCost": 95,
+    "supportAura": {
+      "radius": 130,
+      "damageMult": 1.12,
+      "fireRateMult": 0.9,
+      "rangeBonus": 8
+    }
   }
 }

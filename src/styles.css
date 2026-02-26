@@ -962,6 +962,39 @@ button.is-active {
   font-size: 12px;
 }
 
+.tower-info-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.tower-info-actions.is-disabled {
+  opacity: 0.72;
+}
+
+.tower-info-actions button {
+  border-radius: 10px;
+  padding: 9px 10px;
+  font-size: 12px;
+  text-align: left;
+}
+
+.tower-info-actions button.is-ready {
+  border-color: rgba(125, 233, 255, 0.45);
+  background: linear-gradient(135deg, rgba(125, 233, 255, 0.18), rgba(125, 233, 255, 0.06));
+}
+
+.tower-info-actions button.is-selected {
+  border-color: rgba(255, 209, 102, 0.5);
+  background: linear-gradient(135deg, rgba(255, 209, 102, 0.18), rgba(255, 209, 102, 0.05));
+}
+
+.tower-info-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .audio-row {
   display: grid;
   grid-template-columns: 34px 1fr 30px;
