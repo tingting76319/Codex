@@ -1,0 +1,27 @@
+<svg width="640" height="360" viewBox="0 0 640 360" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#071d1a"/>
+      <stop offset="100%" stop-color="#123427"/>
+    </linearGradient>
+    <radialGradient id="aura" cx="50%" cy="50%" r="58%">
+      <stop offset="0%" stop-color="#8dffb9" stop-opacity=".48"/>
+      <stop offset="100%" stop-color="#8dffb9" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="640" height="360" rx="24" fill="url(#bg)"/>
+  <circle cx="320" cy="180" r="145" fill="url(#aura)"/>
+  <circle cx="320" cy="180" r="112" fill="none" stroke="#8dffb9" stroke-opacity=".22" stroke-width="4" stroke-dasharray="10 8"/>
+  <circle cx="320" cy="180" r="78" fill="none" stroke="#8dffb9" stroke-opacity=".35" stroke-width="3"/>
+  <g transform="translate(320 186)">
+    <rect x="-44" y="-72" width="88" height="124" rx="18" fill="#133c2f" stroke="#a6ffd0" stroke-opacity=".65" stroke-width="3"/>
+    <circle cx="0" cy="-18" r="24" fill="#102b21" stroke="#8dffb9" stroke-width="3"/>
+    <path d="M0 -36 V0 M-18 -18 H18" stroke="#8dffb9" stroke-width="4" stroke-linecap="round"/>
+    <path d="M-22 52 L-6 24 L6 24 L22 52" fill="#133c2f" stroke="#a6ffd0" stroke-opacity=".65" stroke-width="3"/>
+    <circle cx="-66" cy="-26" r="10" fill="#8dffb9" fill-opacity=".85"/>
+    <circle cx="72" cy="4" r="12" fill="#8dffb9" fill-opacity=".78"/>
+    <circle cx="-52" cy="52" r="8" fill="#8dffb9" fill-opacity=".68"/>
+  </g>
+  <text x="32" y="56" fill="#e8fff3" font-size="30" font-family="sans-serif" font-weight="700">支援塔</text>
+  <text x="32" y="88" fill="#b9f5d0" font-size="16" font-family="sans-serif">光環增益・隊伍放大器</text>
+</svg>

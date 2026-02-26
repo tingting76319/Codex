@@ -1,4 +1,59 @@
 export function createRenderer({ ctx, canvas, game, GRID, pathPoints, pathCellSet, towerCatalog }) {
+const fishSpriteMap = {
+  "鯊魚": "./assets/fish-battle/shark-real.png",
+  "皇帶魚": "./assets/fish-battle/oarfish-real.png",
+  "魟魚": "./assets/fish-battle/ray-real.png"
+};
+const fishSpriteCache = new Map();
+
+function getFishSprite(species) {
+  const src = fishSpriteMap[species];
+  if (!src) return null;
+  if (fishSpriteCache.has(src)) return fishSpriteCache.get(src);
+  const img = new Image();
+  img.decoding = "async";
+  img.loading = "lazy";
+  img.src = src;
+  fishSpriteCache.set(src, img);
+  return img;
+}
+
+function drawFishSpriteIfAvailable(fish) {
+  const img = getFishSprite(fish.species);
+  if (!img || !img.complete || !img.naturalWidth) return false;
+  const isOarfish = fish.species === "皇帶魚";
+  const width = fish.radius * (isOarfish ? 5.4 : fish.species === "魟魚" ? 3.3 : 3.8);
+  const height = fish.radius * (isOarfish ? 1.25 : fish.species === "魟魚" ? 2.1 : 2.1);
+  ctx.save();
+  ctx.beginPath();
+  if (fish.species === "魟魚") {
+    ctx.ellipse(0, 0, width * 0.42, height * 0.42, 0, 0, Math.PI * 2);
+  } else {
+    ctx.roundRect(-width * 0.46, -height * 0.45, width * 0.92, height * 0.9, height * 0.22);
+  }
+  ctx.clip();
+  ctx.globalAlpha = 0.92;
+  ctx.drawImage(img, -width / 2, -height / 2, width, height);
+  ctx.restore();
+
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = 1.2;
+  if (fish.species === "魟魚") {
+    ctx.beginPath();
+    ctx.ellipse(0, 0, width * 0.42, height * 0.42, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-width * 0.12, 0);
+    ctx.lineTo(width * 0.38, 0);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.roundRect(-width * 0.46, -height * 0.45, width * 0.92, height * 0.9, height * 0.22);
+    ctx.stroke();
+  }
+  return true;
+}
+
 function drawFishStatusBadges(fish) {
   const badges = [];
   if (fish.slowEffects?.length) badges.push({ text: "緩", fill: "#8effd8" });
@@ -200,6 +255,19 @@ function drawFish(fish) {
   bodyGrad.addColorStop(0.25, fish.color);
   bodyGrad.addColorStop(1, "rgba(4,24,34,0.45)");
   ctx.fillStyle = bodyGrad;
+
+  if (drawFishSpriteIfAvailable(fish)) {
+    ctx.fillStyle = "rgba(255,255,255,0.82)";
+    ctx.beginPath();
+    ctx.arc(fish.radius * 0.52, -fish.radius * 0.12, Math.max(1.8, fish.radius * 0.08), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    ctx.beginPath();
+    ctx.arc(fish.radius * 0.52, -fish.radius * 0.12, Math.max(0.8, fish.radius * 0.035), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
 
   if (fish.species === "鯊魚") {
     ctx.beginPath();

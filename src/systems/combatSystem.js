@@ -52,15 +52,21 @@ function updateTowers(dt) {
       current.rangeBonus += supportTower.supportAura.rangeBonus ?? 0;
       current.critBonus += supportTower.supportAura.critBonus ?? 0;
       current.armorBreakBonus += supportTower.supportAura.armorBreakBonus ?? 0;
+      current.damageMult = Math.min(current.damageMult, 1.45);
+      current.fireRateMult = Math.max(current.fireRateMult, 0.6);
+      current.rangeBonus = Math.min(current.rangeBonus, 44);
+      current.critBonus = Math.min(current.critBonus, 0.35);
+      current.armorBreakBonus = Math.min(current.armorBreakBonus, 0.18);
       supportBuffs.set(tower.id, current);
     }
   }
 
   for (const tower of game.towers) {
     if (tower.typeKey === "support") continue;
+    const buff = supportBuffs.get(tower.id);
+    tower.activeSupportBuff = buff ? { ...buff } : null;
     tower.cooldown -= dt;
     if (tower.cooldown > 0) continue;
-    const buff = supportBuffs.get(tower.id);
     const effectiveRange = tower.range + (buff?.rangeBonus ?? 0);
     const effectiveDamage = tower.damage * (buff?.damageMult ?? 1);
     const effectiveCritChance = Math.min(0.95, (tower.critChance ?? 0) + (buff?.critBonus ?? 0));
@@ -119,6 +125,11 @@ function updateTowers(dt) {
         armorPierceBonus: tower.armorPierceBonus ?? 0
       });
       playSfx("shotBasic");
+    }
+  }
+  for (const tower of game.towers) {
+    if (tower.typeKey === "support") {
+      tower.activeSupportBuff = null;
     }
   }
 }

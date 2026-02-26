@@ -520,9 +520,51 @@ function towerPhotoUrl(towerId) {
   const map = {
     basic: "./assets/tower-codex/basic-real.png",
     slow: "./assets/tower-codex/slow-real.png",
-    splash: "./assets/tower-codex/splash-real.png"
+    splash: "./assets/tower-codex/splash-real.png",
+    sniper: "./assets/tower-codex/sniper-real.svg",
+    support: "./assets/tower-codex/support-real.svg"
   };
   return map[towerId] ?? null;
+}
+
+function towerBranchPreviewText(tower, slot) {
+  const options = getTowerBranchOptions?.(tower);
+  const branch = options?.[slot];
+  if (!branch) return null;
+  const previews = {
+    basic: {
+      A: "提高射程與暴擊，偏單體爆發",
+      B: "提高攻速與連射機率，偏持續輸出"
+    },
+    slow: {
+      A: "強化緩速與脈衝控場範圍",
+      B: "附加破甲效果，支援隊友輸出"
+    },
+    splash: {
+      A: "提高爆炸半徑與濺射倍率",
+      B: "附加燃燒持續傷害"
+    },
+    sniper: {
+      A: "暴擊強化 + 低血量處決門檻",
+      B: "對 Boss/重甲更強，提升穿透"
+    },
+    support: {
+      A: "提高攻速/暴擊增益，偏輸出放大",
+      B: "提高光環範圍/射程與破甲支援"
+    }
+  };
+  return `${branch.label}：${previews[tower.typeKey]?.[slot] ?? "強化該路線特性"}`;
+}
+
+function describeActiveSupportBuff(buff) {
+  if (!buff) return "未受支援塔增益";
+  const parts = [];
+  if (buff.damageMult && buff.damageMult > 1.001) parts.push(`傷害 x${buff.damageMult.toFixed(2)}`);
+  if (buff.fireRateMult && buff.fireRateMult < 0.999) parts.push(`攻速 x${buff.fireRateMult.toFixed(2)}`);
+  if (buff.rangeBonus && buff.rangeBonus > 0) parts.push(`射程 +${Math.round(buff.rangeBonus)}`);
+  if (buff.critBonus && buff.critBonus > 0) parts.push(`暴擊 +${Math.round(buff.critBonus * 100)}%`);
+  if (buff.armorBreakBonus && buff.armorBreakBonus > 0) parts.push(`破甲 +${Math.round(buff.armorBreakBonus * 100)}%`);
+  return parts.length ? parts.join("｜") : "未受支援塔增益";
 }
 
 function getStagesContainingFish(targetFishId) {
@@ -615,6 +657,9 @@ function refreshTowerInfoPanel() {
     const branch = tower.branchLabel ? `｜${tower.branchLabel}${tower.branchTier ? ` ${tower.branchTier}` : ""}` : "";
     hud.towerInfoMeta.textContent = `座標 (${tower.cellX + 1}, ${tower.cellY + 1}) ${branch}`;
   }
+  const options = getTowerBranchOptions?.(tower) ?? {};
+  const branchA = options.A;
+  const branchB = options.B;
   if (hud.towerInfoStats) {
     const dps = tower.fireRate > 0 ? tower.damage / tower.fireRate : tower.damage;
     const branchState = tower.branchLabel
@@ -634,15 +679,15 @@ function refreshTowerInfoPanel() {
     if (tower.supportAura) {
       rows.push(["增益光環", `半徑 ${Math.round(tower.supportAura.radius)}｜傷害 x${(tower.supportAura.damageMult ?? 1).toFixed(2)}`]);
       rows.push(["輔助效果", `攻速 x${(tower.supportAura.fireRateMult ?? 1).toFixed(2)}｜射程 +${Math.round(tower.supportAura.rangeBonus ?? 0)}`]);
+    } else {
+      rows.push(["支援加成", describeActiveSupportBuff(tower.activeSupportBuff)]);
     }
     if (tower.armorBreak) rows.push(["破甲", `${Math.round((tower.armorBreak.amount ?? 0) * 100)}%`]);
     if (tower.burn) rows.push(["灼燒", `${Math.round(tower.burn.dps ?? 0)} DPS`]);
+    if (branchA) rows.push(["分支A預覽", towerBranchPreviewText(tower, "A")?.replace(`${branchA.label}：`, "") ?? branchA.label]);
+    if (branchB) rows.push(["分支B預覽", towerBranchPreviewText(tower, "B")?.replace(`${branchB.label}：`, "") ?? branchB.label]);
     hud.towerInfoStats.innerHTML = rows.map(([k, v]) => `<div class="row"><span>${k}</span><strong>${v}</strong></div>`).join("");
   }
-
-  const options = getTowerBranchOptions?.(tower) ?? {};
-  const branchA = options.A;
-  const branchB = options.B;
   if (hud.towerInfoUpgradeBtn) {
     const canUpgrade = tower.level < 4 && game.gold >= tower.upgradeCost;
     hud.towerInfoUpgradeBtn.disabled = tower.level >= 4 || game.gold < tower.upgradeCost;
@@ -678,9 +723,12 @@ function refreshTowerInfoPanel() {
     }
     if (levelLocked) btn.title = `需 Lv.${unlockLevel}`;
     else if (goldLocked) btn.title = `金幣不足：${cost}`;
+    else if (!btn.title) btn.title = towerBranchPreviewText(tower, slot) ?? "";
   };
   syncBranchButton(hud.towerInfoBranchABtn, "A", branchA);
   syncBranchButton(hud.towerInfoBranchBBtn, "B", branchB);
+  if (hud.towerInfoBranchABtn && !hud.towerInfoBranchABtn.title) hud.towerInfoBranchABtn.title = towerBranchPreviewText(tower, "A") ?? "";
+  if (hud.towerInfoBranchBBtn && !hud.towerInfoBranchBBtn.title) hud.towerInfoBranchBBtn.title = towerBranchPreviewText(tower, "B") ?? "";
 }
 
 function showBossAlert(text, { badge = "警報", duration = 2.2 } = {}) {
@@ -966,6 +1014,8 @@ function renderCodexLists() {
       const traits = [];
       if (tower.slow) traits.push(`緩速 ${Math.round((1 - tower.slow.multiplier) * 100)}%`);
       if (tower.splashRadius) traits.push(`範圍 ${tower.splashRadius}`);
+      if (tower.supportAura) traits.push(`光環 ${tower.supportAura.radius}`);
+      if (tower.critChance) traits.push(`暴擊 ${Math.round(tower.critChance * 100)}%`);
       if (!traits.length) traits.push("單體輸出");
       const towerPhoto = towerPhotoUrl(towerId);
       const item = document.createElement("button");
@@ -1004,6 +1054,8 @@ function renderCodexLists() {
         ];
         if (tower.slow) rows.push(`緩速效果：命中後 ${(Math.round((1 - tower.slow.multiplier) * 100))}% 緩速，持續 ${tower.slow.duration} 秒`);
         if (tower.splashRadius) rows.push(`範圍效果：半徑 ${tower.splashRadius}，濺射倍率 ${Math.round((tower.splashRatio ?? 0) * 100)}%`);
+        if (tower.critChance) rows.push(`狙擊特性：暴擊率 ${Math.round((tower.critChance ?? 0) * 100)}%，暴擊倍率 x${(tower.critMultiplier ?? 1).toFixed(2)}`);
+        if (tower.supportAura) rows.push(`支援光環：半徑 ${tower.supportAura.radius}，傷害 x${tower.supportAura.damageMult.toFixed(2)}，攻速 x${tower.supportAura.fireRateMult.toFixed(2)}，射程 +${tower.supportAura.rangeBonus}`);
         openCodexDetail({
           kind: "tower",
           title: tower.label,

@@ -956,10 +956,16 @@ button.is-active {
 
 #towerInfoStats .row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(58px, 84px) minmax(0, 1fr);
   gap: 8px;
   color: #cbeef4;
   font-size: 12px;
+}
+
+#towerInfoStats .row strong {
+  text-align: right;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .tower-info-actions {

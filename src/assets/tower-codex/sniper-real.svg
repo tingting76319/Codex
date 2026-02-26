@@ -1,0 +1,35 @@
+<svg width="640" height="360" viewBox="0 0 640 360" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#071724"/>
+      <stop offset="100%" stop-color="#13253f"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="55%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#d8dcff" stop-opacity=".55"/>
+      <stop offset="100%" stop-color="#d8dcff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="640" height="360" rx="24" fill="url(#bg)"/>
+  <circle cx="370" cy="170" r="150" fill="url(#glow)"/>
+  <g opacity=".18" stroke="#89a4cf">
+    <path d="M40 290 H600"/>
+    <path d="M90 40 V320"/>
+    <path d="M180 40 V320"/>
+    <path d="M270 40 V320"/>
+    <path d="M360 40 V320"/>
+    <path d="M450 40 V320"/>
+    <path d="M540 40 V320"/>
+  </g>
+  <g transform="translate(320 185)">
+    <rect x="-118" y="-22" width="148" height="44" rx="12" fill="#152a43" stroke="#cdd5ff" stroke-opacity=".7" stroke-width="3"/>
+    <rect x="-138" y="-10" width="28" height="20" rx="6" fill="#1b324f" stroke="#98aad9" stroke-opacity=".6"/>
+    <rect x="28" y="-9" width="114" height="18" rx="7" fill="#1a3554" stroke="#d8dcff" stroke-opacity=".55"/>
+    <circle cx="44" cy="0" r="17" fill="#0f1c31" stroke="#d8dcff" stroke-width="3"/>
+    <circle cx="44" cy="0" r="10" fill="none" stroke="#6fd6ff" stroke-opacity=".9" stroke-width="2"/>
+    <circle cx="44" cy="0" r="3" fill="#6fd6ff"/>
+    <path d="M-36 22 L-12 52 L8 22" fill="#152a43" stroke="#9db2df" stroke-opacity=".7" stroke-width="3"/>
+    <path d="M-92 -22 L-66 -58 L-36 -22" fill="#152a43" stroke="#b7c6ea" stroke-opacity=".7" stroke-width="3"/>
+  </g>
+  <text x="32" y="56" fill="#e7f0ff" font-size="30" font-family="sans-serif" font-weight="700">狙擊塔</text>
+  <text x="32" y="88" fill="#bdd0ef" font-size="16" font-family="sans-serif">高射程・單體爆發・Boss特化</text>
+</svg>
