@@ -6,12 +6,14 @@ const fishSpriteMap = {
   "鯨魚": "./assets/fish-battle/whale-real.png",
   "河豚": "./assets/fish-battle/puffer-real.png",
   "旗魚": "./assets/fish-battle/swordfish-real.png",
-  "鮪魚": "./assets/fish-battle/tuna-real.png"
+  "鮪魚": "./assets/fish-battle/tuna-real.png",
+  "BOSS:深海鯨王": "./assets/fish-battle/boss-whale-king.jpeg"
 };
 const fishSpriteCache = new Map();
 
-function getFishSprite(species) {
-  const src = fishSpriteMap[species];
+function getFishSprite(species, fish = null) {
+  const bossKey = fish?.isBoss ? `BOSS:${fish.label}` : null;
+  const src = (bossKey && fishSpriteMap[bossKey]) || fishSpriteMap[species];
   if (!src) return null;
   if (fishSpriteCache.has(src)) return fishSpriteCache.get(src);
   const img = new Image();
@@ -23,7 +25,7 @@ function getFishSprite(species) {
 }
 
 function drawFishSpriteIfAvailable(fish) {
-  const img = getFishSprite(fish.species);
+  const img = getFishSprite(fish.species, fish);
   if (!img || !img.complete || !img.naturalWidth) return false;
   const isOarfish = fish.species === "皇帶魚";
   const isRay = fish.species === "魟魚";
@@ -46,7 +48,11 @@ function drawFishSpriteIfAvailable(fish) {
             : isSwordfish ? 1.75
               : 2.1
   );
+  const phase = (performance.now() * 0.0038) + (fish.id || 0) * 0.47;
+  const pulse = fish.isBoss ? 1 + Math.sin(phase) * 0.035 : 1 + Math.sin(phase) * 0.012;
+  const glow = fish.isBoss ? 0.16 + (Math.sin(phase * 1.2) + 1) * 0.05 : 0.06 + (Math.sin(phase * 1.1) + 1) * 0.015;
   ctx.save();
+  ctx.scale(pulse, pulse);
   ctx.beginPath();
   if (isRay) {
     ctx.ellipse(0, 0, width * 0.42, height * 0.42, 0, 0, Math.PI * 2);
@@ -56,8 +62,21 @@ function drawFishSpriteIfAvailable(fish) {
     ctx.roundRect(-width * 0.46, -height * 0.45, width * 0.92, height * 0.9, height * 0.22);
   }
   ctx.clip();
-  ctx.globalAlpha = 0.92;
+  ctx.globalAlpha = fish.isBoss ? 0.96 : 0.92;
   ctx.drawImage(img, -width / 2, -height / 2, width, height);
+  if (glow > 0) {
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = fish.isBoss ? `rgba(255,209,102,${glow.toFixed(3)})` : `rgba(255,255,255,${glow.toFixed(3)})`;
+    if (isRay) {
+      ctx.beginPath();
+      ctx.ellipse(0, 0, width * 0.42, height * 0.42, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.roundRect(-width * 0.46, -height * 0.45, width * 0.92, height * 0.9, height * 0.22);
+      ctx.fill();
+    }
+  }
   ctx.restore();
 
   ctx.strokeStyle = "rgba(255,255,255,0.22)";

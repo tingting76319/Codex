@@ -594,6 +594,18 @@ function estimateTowerUpgradePreview(tower) {
   return text;
 }
 
+function towerDpsSummary(tower) {
+  if (!tower) return "-";
+  const baseDps = tower.fireRate > 0 ? tower.damage / tower.fireRate : tower.damage;
+  if (tower.typeKey === "support") return `支援塔（無直接輸出）`;
+  const buff = tower.activeSupportBuff;
+  if (!buff) return `${Math.round(baseDps)}`;
+  const buffedDamage = tower.damage * (buff.damageMult ?? 1);
+  const buffedFireRate = Math.max(0.08, tower.fireRate * (buff.fireRateMult ?? 1));
+  const buffedDps = buffedFireRate > 0 ? buffedDamage / buffedFireRate : buffedDamage;
+  return `${Math.round(baseDps)} → ${Math.round(buffedDps)} (支援中)`;
+}
+
 function getStagesContainingFish(targetFishId) {
   const result = [];
   for (const stage of Object.values(stageCatalog)) {
@@ -698,6 +710,7 @@ function refreshTowerInfoPanel() {
       ["射程", Math.round(tower.range)],
       ["攻速", `${tower.fireRate.toFixed(2)}s`],
       ["DPS(估算)", Math.round(dps)],
+      ["DPS對照", towerDpsSummary(tower)],
       ["分支", branchState],
       ["升級費", tower.level >= 4 ? "已滿級" : tower.upgradeCost],
       ["升級後", upgradePreview]
