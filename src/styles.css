@@ -1015,7 +1015,9 @@ button.is-active {
 .dot.shark { background: #6ea8ff; }
 .dot.whale { background: #8f78ff; }
 .dot.tuna { background: #54d6d2; }
+.dot.oarfish { background: #63bfc3; }
 .dot.puffer { background: #ffd166; }
+.dot.ray { background: #7ac2d6; }
 .dot.swordfish { background: #ff8f6b; }
 
 .message {
