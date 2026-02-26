@@ -135,7 +135,7 @@ function buildWave(wave) {
     const bossIntervalPreview = wavePlan.bossWave?.interval ?? 5;
     const isEarlyBossWave = upcomingWave > 0 && upcomingWave % bossIntervalPreview === 0;
     setMessage(`提前開波獎勵 +${earlyStartBonus} 金幣${condText}`);
-    playSfx("waveEarly");
+    playSfx(isEarlyBossWave ? "waveEarlyBoss" : "waveEarly");
     showBossAlert?.(
       `${isEarlyBossWave ? "Boss波" : "一般波"} 提前開波 +${earlyStartBonus} 金幣`,
       { badge: isEarlyBossWave ? "提前-BOSS" : "提前", duration: isEarlyBossWave ? 1.7 : 1.4 }

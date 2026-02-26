@@ -1462,6 +1462,29 @@ button.is-active {
 
   .controls {
     grid-template-columns: repeat(3, 1fr);
+    align-items: start;
+  }
+
+  .controls #openShortcutHelpBtn.icon-button {
+    justify-self: end;
+    position: sticky;
+    top: 6px;
+    z-index: 3;
+    width: 40px;
+    height: 36px;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.22);
+  }
+
+  .controls #openShortcutHelpBtn.icon-button::after {
+    left: auto;
+    right: calc(100% + 8px);
+    transform: translateY(-50%) translateX(4px);
+  }
+
+  .controls #openShortcutHelpBtn.icon-button:hover::after,
+  .controls #openShortcutHelpBtn.icon-button:focus-visible::after {
+    transform: translateY(-50%) translateX(0);
   }
 
   .main-menu-card h1 {

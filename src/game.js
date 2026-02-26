@@ -1263,6 +1263,16 @@ function openResultOverlay({ victory }) {
       .map((entry) => `${entry.label} +${Math.round((entry.bonus ?? 0) * 100)}%`)
       .join("、")
     : "無額外條件加成";
+  const condBonusPctTotal = Math.max(0, Math.round((condBonusMult - 1) * 100));
+  const condBonusShareText = condBonusBreakdown.length > 0 && condBonusPctTotal > 0
+    ? condBonusBreakdown
+      .map((entry) => {
+        const pct = Math.round((entry.bonus ?? 0) * 100);
+        const share = Math.max(1, Math.round((pct / condBonusPctTotal) * 100));
+        return `${entry.label} ${share}%`;
+      })
+      .join("、")
+    : "無";
   const condBonusCapNote = condBonusMult >= 1.35 ? "（已達條件加成上限）" : "";
   resultUi.stats.innerHTML = `
     <div class="item"><span>地圖 / 關卡</span><strong>${game.mapShortLabel} / ${game.stageShortLabel}</strong></div>
@@ -1275,6 +1285,7 @@ function openResultOverlay({ victory }) {
     <div class="item"><span>提前開波獎勵（本關累計）</span><strong>+${earlyBonusTotal}（約 ${earlyBonusRatio}% 本局金幣）</strong></div>
     <div class="item"><span>提前開波策略分析</span><strong>${earlyVerdict}｜平均每波 +${avgEarlyBonus.toFixed(1)}</strong></div>
     <div class="item"><span>策略加成來源</span><strong>條件加成 x${condBonusMult.toFixed(2)}｜${condBonusBreakdownText}${condBonusCapNote}</strong></div>
+    <div class="item"><span>加成來源占比</span><strong>${condBonusShareText}</strong></div>
     <div class="item"><span>建塔 / 升級</span><strong>${game.stats.towersPlaced} / ${game.stats.towerUpgrades}</strong></div>
     <div class="item"><span>分支升級 / Boss 擊殺</span><strong>${game.stats.branchUpgrades} / ${game.stats.bossKills}</strong></div>
     ${conditionRows}
