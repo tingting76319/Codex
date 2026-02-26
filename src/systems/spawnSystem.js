@@ -8,6 +8,9 @@ export function createSpawnSystem({
   showBossAlert,
   onStageWavePlanComplete
 }) {
+const autoWaveDelaySeconds = wavePlan.autoWaveDelaySeconds ?? 1.4;
+if (typeof game.autoWaveTimer !== "number") game.autoWaveTimer = autoWaveDelaySeconds;
+
 function evalCountExpr(expr, wave) {
   if (!expr) return 0;
   let total = expr.base ?? 0;
@@ -73,6 +76,7 @@ function buildWave(wave) {
   game.spawnQueue = buildWave(game.wave);
   game.spawnTimer = 0;
   game.waveActive = true;
+  game.autoWaveTimer = autoWaveDelaySeconds;
   const bossInterval = wavePlan.bossWave?.interval ?? 5;
   if (game.wave > 0 && game.wave % bossInterval === 0) {
     setMessage(`第 ${game.wave} 波 Boss 波次開始！共 ${game.spawnQueue.length} 隻魚。`);
@@ -86,7 +90,16 @@ function buildWave(wave) {
 }
 
 function updateSpawning(dt) {
-  if (!game.waveActive) return;
+  if (!game.waveActive) {
+    const maxWaves = wavePlan.maxWaves ?? null;
+    if (game.stageCleared || game.stageFailed || game.lives <= 0) return;
+    if (maxWaves && game.wave >= maxWaves) return;
+    game.autoWaveTimer = Math.max(0, (game.autoWaveTimer ?? autoWaveDelaySeconds) - dt);
+    if (game.autoWaveTimer <= 0) {
+      startNextWave();
+    }
+    return;
+  }
   if (game.spawnQueue.length > 0) {
     game.spawnTimer -= dt;
     if (game.spawnTimer <= 0) {
@@ -116,6 +129,7 @@ function updateSpawning(dt) {
       }
     } else {
       setMessage(`第 ${game.wave} 波完成！準備下一波。`);
+      game.autoWaveTimer = autoWaveDelaySeconds;
     }
   }
 }

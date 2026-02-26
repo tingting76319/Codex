@@ -1409,7 +1409,7 @@ function applyPendingStageSelection() {
     return;
   }
   closeMainMenu();
-  setMessage(`已進入 ${game.stageLabel}，點擊「開始/下一波」開始防守。`);
+  setMessage(`已進入 ${game.stageLabel}，波次將自動開始。`);
 }
 
 populateMapStageSelectors();
@@ -1466,7 +1466,7 @@ bindInputHandlers({
     syncMenuStateFromDom();
     if (game.inMainMenu) {
       closeMainMenu();
-      setMessage(`已進入 ${game.stageLabel}，點擊「開始/下一波」開始防守。`);
+      setMessage(`已進入 ${game.stageLabel}，波次將自動開始。`);
       return;
     }
     ensureAudio();
@@ -1577,7 +1577,7 @@ bindInputHandlers({
   },
   onMenuClose: () => {
     closeMainMenu();
-    setMessage(`已進入 ${game.stageLabel}，點擊「開始/下一波」開始防守。`);
+    setMessage(`已進入 ${game.stageLabel}，波次將自動開始。`);
   }
 });
 
@@ -1591,11 +1591,11 @@ menu.codexToStagesBtn?.addEventListener("click", () => setMenuPanel("stages"));
 menu.settingsToStagesBtn?.addEventListener("click", () => setMenuPanel("stages"));
 menu.codexCloseBtn?.addEventListener("click", () => {
   closeMainMenu();
-  setMessage(`已進入 ${game.stageLabel}，點擊「開始/下一波」開始防守。`);
+  setMessage(`已進入 ${game.stageLabel}，波次將自動開始。`);
 });
 menu.settingsCloseBtn?.addEventListener("click", () => {
   closeMainMenu();
-  setMessage(`已進入 ${game.stageLabel}，點擊「開始/下一波」開始防守。`);
+  setMessage(`已進入 ${game.stageLabel}，波次將自動開始。`);
 });
 menu.stageStartBtn?.addEventListener("click", () => applyPendingStageSelection());
 menu.mapTabs?.addEventListener("click", (event) => {
