@@ -27,7 +27,7 @@ const DEFAULT_SETTINGS = {
   showDamageText: true,
   fxDensity: "中",
   spriteQuality: "高",
-  spriteAutoThreshold: "中",
+  spriteAutoThreshold: 85,
   showTowerPanel: true,
   showPerfStats: true
 };
@@ -91,6 +91,16 @@ function clamp01(v, fallback) {
   return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : fallback;
 }
 
+function sanitizeSpriteAutoThreshold(raw) {
+  if (typeof raw === "string") {
+    const legacyMap = { "低": 65, "中": 85, "高": 110 };
+    if (legacyMap[raw] != null) return legacyMap[raw];
+  }
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return DEFAULT_SETTINGS.spriteAutoThreshold;
+  return Math.max(50, Math.min(140, Math.round(n / 5) * 5));
+}
+
 function sanitizeSettings(raw) {
   const obj = raw && typeof raw === "object" ? raw : {};
   return {
@@ -100,7 +110,7 @@ function sanitizeSettings(raw) {
     showDamageText: obj.showDamageText !== false,
     fxDensity: ["低", "中", "高"].includes(obj.fxDensity) ? obj.fxDensity : DEFAULT_SETTINGS.fxDensity,
     spriteQuality: ["低", "自動", "高"].includes(obj.spriteQuality) ? obj.spriteQuality : DEFAULT_SETTINGS.spriteQuality,
-    spriteAutoThreshold: ["低", "中", "高"].includes(obj.spriteAutoThreshold) ? obj.spriteAutoThreshold : DEFAULT_SETTINGS.spriteAutoThreshold,
+    spriteAutoThreshold: sanitizeSpriteAutoThreshold(obj.spriteAutoThreshold),
     showTowerPanel: obj.showTowerPanel !== false,
     showPerfStats: obj.showPerfStats !== false
   };
@@ -232,7 +242,7 @@ const game = {
     showDamageText: savedSettings.showDamageText !== false,
     fxDensity: ["低", "中", "高"].includes(savedSettings.fxDensity) ? savedSettings.fxDensity : "中",
     spriteQuality: ["低", "自動", "高"].includes(savedSettings.spriteQuality) ? savedSettings.spriteQuality : "高",
-    spriteAutoThreshold: ["低", "中", "高"].includes(savedSettings.spriteAutoThreshold) ? savedSettings.spriteAutoThreshold : "中",
+    spriteAutoThreshold: sanitizeSpriteAutoThreshold(savedSettings.spriteAutoThreshold),
     showTowerPanel: savedSettings.showTowerPanel !== false,
     showPerfStats: savedSettings.showPerfStats !== false
   }
@@ -425,8 +435,7 @@ function stageConditionProgressSegments(stage) {
 function effectiveSpriteQualityLabel() {
   const mode = game.displaySettings?.spriteQuality ?? "高";
   if (mode !== "自動") return mode;
-  const thresholdMap = { "低": 65, "中": 85, "高": 110 };
-  const threshold = thresholdMap[game.displaySettings?.spriteAutoThreshold ?? "中"] ?? 85;
+  const threshold = sanitizeSpriteAutoThreshold(game.displaySettings?.spriteAutoThreshold);
   const pressure = (game.fishes?.length ?? 0) + ((game.bullets?.length ?? 0) * 0.5) + ((game.particles?.length ?? 0) * 0.12);
   return pressure > threshold ? "低" : "高";
 }
@@ -919,7 +928,8 @@ function syncMenuSettingsUi() {
   if (menu.showDamageText) menu.showDamageText.checked = game.displaySettings.showDamageText;
   if (menu.fxDensity) menu.fxDensity.value = game.displaySettings.fxDensity;
   if (menu.spriteQuality) menu.spriteQuality.value = game.displaySettings.spriteQuality;
-  if (menu.spriteAutoThreshold) menu.spriteAutoThreshold.value = game.displaySettings.spriteAutoThreshold;
+  if (menu.spriteAutoThreshold) menu.spriteAutoThreshold.value = String(sanitizeSpriteAutoThreshold(game.displaySettings.spriteAutoThreshold));
+  if (menu.spriteAutoThresholdValue) menu.spriteAutoThresholdValue.textContent = String(sanitizeSpriteAutoThreshold(game.displaySettings.spriteAutoThreshold));
   if (menu.showTowerPanel) menu.showTowerPanel.checked = game.displaySettings.showTowerPanel;
   if (menu.showPerfStats) menu.showPerfStats.checked = game.displaySettings.showPerfStats;
   if (menu.saveSlot) menu.saveSlot.value = game.currentSaveSlot;
@@ -1645,9 +1655,15 @@ menu.spriteQuality?.addEventListener("change", () => {
   syncMenuSettingsUi();
 });
 menu.spriteAutoThreshold?.addEventListener("change", () => {
-  game.displaySettings.spriteAutoThreshold = menu.spriteAutoThreshold.value;
+  game.displaySettings.spriteAutoThreshold = sanitizeSpriteAutoThreshold(menu.spriteAutoThreshold.value);
   persistSettings();
   syncMenuSettingsUi();
+  updateHudClearConditionLabel();
+});
+menu.spriteAutoThreshold?.addEventListener("input", () => {
+  const n = sanitizeSpriteAutoThreshold(menu.spriteAutoThreshold.value);
+  game.displaySettings.spriteAutoThreshold = n;
+  if (menu.spriteAutoThresholdValue) menu.spriteAutoThresholdValue.textContent = String(n);
   updateHudClearConditionLabel();
 });
 menu.showTowerPanel?.addEventListener("change", () => {
@@ -1668,7 +1684,7 @@ menu.resetSettingsBtn?.addEventListener("click", () => {
   game.displaySettings.showDamageText = true;
   game.displaySettings.fxDensity = "中";
   game.displaySettings.spriteQuality = "高";
-  game.displaySettings.spriteAutoThreshold = "中";
+  game.displaySettings.spriteAutoThreshold = 85;
   game.displaySettings.showTowerPanel = true;
   game.displaySettings.showPerfStats = true;
   if (hud.bgmVolume) hud.bgmVolume.value = "45";
@@ -1843,7 +1859,7 @@ try {
     game.displaySettings.showDamageText = nativeSettings.showDamageText;
     game.displaySettings.fxDensity = nativeSettings.fxDensity;
     game.displaySettings.spriteQuality = nativeSettings.spriteQuality;
-    game.displaySettings.spriteAutoThreshold = nativeSettings.spriteAutoThreshold;
+    game.displaySettings.spriteAutoThreshold = sanitizeSpriteAutoThreshold(nativeSettings.spriteAutoThreshold);
     game.displaySettings.showTowerPanel = nativeSettings.showTowerPanel;
     game.displaySettings.showPerfStats = nativeSettings.showPerfStats;
     if (hud.bgmVolume) hud.bgmVolume.value = String(Math.round(game.bgmVolume * 100));

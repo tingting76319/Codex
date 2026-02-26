@@ -33,8 +33,7 @@ function getFishSprite(species, fish = null) {
 function effectiveSpriteQuality() {
   const mode = game.displaySettings?.spriteQuality ?? "高";
   if (mode !== "自動") return mode;
-  const thresholdMap = { "低": 65, "中": 85, "高": 110 };
-  const threshold = thresholdMap[game.displaySettings?.spriteAutoThreshold ?? "中"] ?? 85;
+  const threshold = Math.max(50, Math.min(140, Number(game.displaySettings?.spriteAutoThreshold ?? 85)));
   const pressure = (game.fishes?.length ?? 0) + ((game.bullets?.length ?? 0) * 0.5) + ((game.particles?.length ?? 0) * 0.12);
   return pressure > threshold ? "低" : "高";
 }
@@ -244,6 +243,7 @@ function drawBackground() {
         let coveredCount = 0;
         let addedDps = 0;
         let coveredBaseDps = 0;
+        const typeCounts = new Map();
         ctx.strokeStyle = "rgba(141,255,185,0.28)";
         ctx.lineWidth = 1.4;
         ctx.setLineDash([5, 6]);
@@ -256,6 +256,7 @@ function drawBackground() {
           const d = Math.hypot(tower.x - cx, tower.y - cy);
           if (d > supportSpec.supportAura.radius) continue;
           coveredCount += 1;
+          typeCounts.set(tower.typeLabel ?? tower.typeKey ?? "塔", (typeCounts.get(tower.typeLabel ?? tower.typeKey ?? "塔") ?? 0) + 1);
           const currentBuff = mergedSupportBuffWithCaps(tower.activeSupportBuff, null);
           const plusBuff = mergedSupportBuffWithCaps(tower.activeSupportBuff, supportSpec.supportAura);
           const beforeDps = estimateTowerDpsWithBuff(tower, currentBuff);
@@ -275,18 +276,25 @@ function drawBackground() {
         ctx.fillStyle = "rgba(5,24,31,0.82)";
         ctx.strokeStyle = "rgba(141,255,185,0.35)";
         ctx.lineWidth = 1;
+        const compSummary = [...typeCounts.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([label, count]) => `${label}x${count}`)
+          .join(" / ") || "無";
         ctx.beginPath();
-        ctx.roundRect(cx - 76, cy - supportSpec.supportAura.radius - 42, 152, 36, 8);
+        ctx.roundRect(cx - 92, cy - supportSpec.supportAura.radius - 58, 184, 52, 8);
         ctx.fill();
         ctx.stroke();
         ctx.fillStyle = "#cffff0";
         ctx.font = "bold 11px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText(`預估覆蓋 ${coveredCount} 座`, cx, cy - supportSpec.supportAura.radius - 27);
+        ctx.fillText(`預估覆蓋 ${coveredCount} 座`, cx, cy - supportSpec.supportAura.radius - 43);
         ctx.font = "10px sans-serif";
         ctx.fillStyle = "rgba(207,255,240,0.9)";
         const pctGain = coveredBaseDps > 0 ? Math.round((addedDps / coveredBaseDps) * 100) : 0;
-        ctx.fillText(`新增DPS 約 +${Math.round(addedDps)}（+${pctGain}%）`, cx, cy - supportSpec.supportAura.radius - 14);
+        ctx.fillText(`新增DPS 約 +${Math.round(addedDps)}（+${pctGain}%）`, cx, cy - supportSpec.supportAura.radius - 30);
+        ctx.fillStyle = "rgba(188,245,221,0.88)";
+        ctx.fillText(`塔種：${compSummary}`, cx, cy - supportSpec.supportAura.radius - 17);
       }
       ctx.strokeStyle = valid ? "rgba(141,255,185,0.85)" : "rgba(255,123,123,0.85)";
       ctx.lineWidth = 2;
@@ -915,7 +923,8 @@ function drawOverlay() {
     ctx.lineWidth = 1.5;
     const historyItems = (game.bossSkillHistory ?? [])
       .filter((item) => item.bossId === boss.id)
-      .slice(-3);
+      .slice(-4)
+      .reverse();
     const panelHeight = historyItems.length ? 86 : 62;
     ctx.beginPath();
     ctx.roundRect(canvas.width - 264, 14, 250, panelHeight, 12);
@@ -938,20 +947,22 @@ function drawOverlay() {
       for (const item of historyItems) {
         const chipText = `${item.icon ?? "•"} ${item.label}`;
         const chipW = Math.max(36, Math.ceil(ctx.measureText(chipText).width) + 12);
+        const ageSec = item.ts ? (Date.now() - item.ts) / 1000 : 0;
+        const fadeAlpha = Math.max(0.35, Math.min(1, 1 - ageSec / 12));
         const color = item.label.includes("護盾")
-          ? "rgba(125,233,255,0.18)"
+          ? `rgba(125,233,255,${(0.18 * fadeAlpha).toFixed(3)})`
           : item.label.includes("召喚")
-            ? "rgba(255,209,102,0.18)"
+            ? `rgba(255,209,102,${(0.18 * fadeAlpha).toFixed(3)})`
             : item.label.includes("狂暴")
-              ? "rgba(255,123,123,0.18)"
-              : "rgba(231,251,255,0.12)";
+              ? `rgba(255,123,123,${(0.18 * fadeAlpha).toFixed(3)})`
+              : `rgba(231,251,255,${(0.12 * fadeAlpha).toFixed(3)})`;
         const stroke = item.label.includes("護盾")
-          ? "rgba(125,233,255,0.35)"
+          ? `rgba(125,233,255,${(0.35 * fadeAlpha).toFixed(3)})`
           : item.label.includes("召喚")
-            ? "rgba(255,209,102,0.35)"
+            ? `rgba(255,209,102,${(0.35 * fadeAlpha).toFixed(3)})`
             : item.label.includes("狂暴")
-              ? "rgba(255,123,123,0.35)"
-              : "rgba(231,251,255,0.22)";
+              ? `rgba(255,123,123,${(0.35 * fadeAlpha).toFixed(3)})`
+              : `rgba(231,251,255,${(0.22 * fadeAlpha).toFixed(3)})`;
         ctx.fillStyle = color;
         ctx.strokeStyle = stroke;
         ctx.lineWidth = 1;
@@ -959,7 +970,7 @@ function drawOverlay() {
         ctx.roundRect(chipX, chipY, chipW, 14, 6);
         ctx.fill();
         ctx.stroke();
-        ctx.fillStyle = "#e7fbff";
+        ctx.fillStyle = `rgba(231,251,255,${(0.75 + 0.25 * fadeAlpha).toFixed(3)})`;
         ctx.font = "10px sans-serif";
         ctx.fillText(chipText, chipX + 6, chipY + 10);
         chipX += chipW + 6;
@@ -971,9 +982,7 @@ function drawOverlay() {
   if (game.displaySettings?.showPerfStats !== false) {
     const spriteMode = game.displaySettings?.spriteQuality ?? "高";
     const pressure = (game.fishes?.length ?? 0) + ((game.bullets?.length ?? 0) * 0.5) + ((game.particles?.length ?? 0) * 0.12);
-    const thresholdMap = { "低": 65, "中": 85, "高": 110 };
-    const autoThresholdLabel = game.displaySettings?.spriteAutoThreshold ?? "中";
-    const autoThreshold = thresholdMap[autoThresholdLabel] ?? 85;
+    const autoThreshold = Math.max(50, Math.min(140, Number(game.displaySettings?.spriteAutoThreshold ?? 85)));
     const spriteActual = spriteMode !== "自動" ? spriteMode : (pressure > autoThreshold ? "低" : "高");
     if (spriteMode === "自動") {
       if (autoSpriteActualLast == null) {
@@ -997,7 +1006,7 @@ function drawOverlay() {
     ctx.font = "11px sans-serif";
     ctx.textAlign = "left";
     ctx.fillText(`FPS ${perfFps || 0}｜魚 ${game.fishes.length}｜彈 ${game.bullets.length}｜粒子 ${game.particles.length}`, 24, canvas.height - 62);
-    ctx.fillText(`貼圖品質 ${spriteMode}${spriteMode === "自動" ? `→${spriteActual}` : ""}｜壓力 ${pressure.toFixed(0)}${spriteMode === "自動" ? `｜門檻 ${autoThresholdLabel}` : ""}`, 24, canvas.height - 44);
+    ctx.fillText(`貼圖品質 ${spriteMode}${spriteMode === "自動" ? `→${spriteActual}` : ""}｜壓力 ${pressure.toFixed(0)}${spriteMode === "自動" ? `｜門檻 ${Math.round(autoThreshold)}` : ""}`, 24, canvas.height - 44);
     const lastSwitchAgo = autoSpriteLastSwitchAt > 0 ? `${((performance.now() - autoSpriteLastSwitchAt) / 1000).toFixed(1)}s前` : "—";
     ctx.fillText(`Auto切換 ${autoSpriteSwitchCount} 次｜最近 ${lastSwitchAgo}`, 24, canvas.height - 26);
   }

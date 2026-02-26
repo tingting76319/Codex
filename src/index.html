@@ -177,11 +177,10 @@
               </div>
               <div class="menu-setting-line">
                 <label for="menuSpriteAutoThreshold">Auto 切換門檻</label>
-                <select id="menuSpriteAutoThreshold">
-                  <option>低</option>
-                  <option selected>中</option>
-                  <option>高</option>
-                </select>
+                <div style="display:flex;align-items:center;gap:8px;min-width:190px;">
+                  <input id="menuSpriteAutoThreshold" type="range" min="50" max="140" step="5" value="85" style="width:140px;" />
+                  <span id="menuSpriteAutoThresholdValue">85</span>
+                </div>
               </div>
               <div class="menu-setting-line">
                 <label for="menuShowTowerPanel">顯示塔台資訊面板</label>
