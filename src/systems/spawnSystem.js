@@ -13,6 +13,8 @@ if (typeof game.autoWaveTimer !== "number") game.autoWaveTimer = autoWaveDelaySe
 if (typeof game.autoWaveBonusPreview !== "number") game.autoWaveBonusPreview = 0;
 if (typeof game.autoWaveDelayTotal !== "number") game.autoWaveDelayTotal = autoWaveDelaySeconds;
 if (typeof game.earlyStartStreak !== "number") game.earlyStartStreak = 0;
+if (typeof game.earlyStartBonusTotal !== "number") game.earlyStartBonusTotal = 0;
+if (typeof game.earlyStartBonusCapMult !== "number") game.earlyStartBonusCapMult = 1.75;
 
 function calcEarlyStartBonus() {
   if (game.displaySettings?.autoStartWaves === false) return 0;
@@ -21,7 +23,8 @@ function calcEarlyStartBonus() {
   if (remaining <= 0.02) return 0;
   const waveFactor = Math.min(8, Math.floor(Math.max(1, game.wave + 1) / 2));
   const base = Math.max(1, Math.ceil(remaining * 4) + waveFactor);
-  const streakMult = 1 + Math.min(0.75, (game.earlyStartStreak ?? 0) * 0.1);
+  const capBonusMult = Math.max(1, Number(game.earlyStartBonusCapMult ?? 1.75));
+  const streakMult = 1 + Math.min(capBonusMult - 1, (game.earlyStartStreak ?? 0) * 0.1);
   return Math.max(1, Math.round(base * streakMult));
 }
 
@@ -91,6 +94,7 @@ function buildWave(wave) {
   const earlyStartBonus = manual ? calcEarlyStartBonus() : 0;
   if (earlyStartBonus > 0) {
     game.gold += earlyStartBonus;
+    game.earlyStartBonusTotal = (game.earlyStartBonusTotal ?? 0) + earlyStartBonus;
     game.earlyStartStreak = (game.earlyStartStreak ?? 0) + 1;
     setMessage(`提前開波獎勵 +${earlyStartBonus} 金幣`);
     playSfx("build");

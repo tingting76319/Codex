@@ -1567,6 +1567,13 @@ bindInputHandlers({
     syncMenuStateFromDom();
     openSavePanelFromHud();
   },
+  onToggleAutoStartWaves: () => {
+    game.displaySettings.autoStartWaves = !game.displaySettings.autoStartWaves;
+    persistSettings();
+    syncMenuSettingsUi();
+    updateHud();
+    setMessage(`已${game.displaySettings.autoStartWaves ? "開啟" : "關閉"}自動開波（快捷鍵 A 可切換）`);
+  },
   onMenuMapChange: () => {
     pendingMapId = menu.mapSelect.value;
     repopulateStageSelectors(pendingMapId);

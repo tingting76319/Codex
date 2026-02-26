@@ -22,7 +22,8 @@ export function bindInputHandlers({
   onMenuMapChange,
   onMenuStageChange,
   onMenuStart,
-  onMenuClose
+  onMenuClose,
+  onToggleAutoStartWaves
 }) {
   const lastPressTs = new WeakMap();
   const bindPress = (el, handler) => {
@@ -106,4 +107,16 @@ export function bindInputHandlers({
   menu?.stageSelect?.addEventListener("change", onMenuStageChange);
   bindPress(menu?.startBtn, onMenuStart);
   bindPress(menu?.closeBtn, onMenuClose);
+
+  window.addEventListener("keydown", (event) => {
+    if (event.defaultPrevented) return;
+    const target = event.target;
+    const tag = target?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.key?.toLowerCase() === "a") {
+      event.preventDefault();
+      onToggleAutoStartWaves?.();
+    }
+  });
 }
