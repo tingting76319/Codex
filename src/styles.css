@@ -744,6 +744,57 @@ button.is-active {
   word-break: break-word;
 }
 
+#clearConditionLabel .prefix {
+  display: inline-block;
+  font-weight: 700;
+  color: #fff;
+  margin-right: 6px;
+}
+
+#clearConditionLabel .rules {
+  display: block;
+  margin-top: 2px;
+  color: rgba(231, 251, 255, 0.92);
+}
+
+#clearConditionLabel .progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.condition-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 4px 8px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.condition-chip em {
+  font-style: normal;
+  color: rgba(231,251,255,0.76);
+}
+
+.condition-chip strong {
+  color: #fff;
+}
+
+.condition-chip.is-ok {
+  border-color: rgba(84, 230, 166, 0.32);
+  background: rgba(84, 230, 166, 0.1);
+}
+
+.condition-chip.is-bad {
+  border-color: rgba(255, 123, 123, 0.35);
+  background: rgba(255, 123, 123, 0.1);
+}
+
 #openMenuBtn {
   border-color: rgba(125, 233, 255, 0.3);
 }
@@ -933,6 +984,14 @@ button.is-active {
 
 .result-stats .item strong {
   font-size: 16px;
+}
+
+.result-stats .item.condition.ok strong {
+  color: #a9ffd1;
+}
+
+.result-stats .item.condition.fail strong {
+  color: #ffb4b4;
 }
 
 .boss-alert {

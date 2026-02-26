@@ -358,29 +358,56 @@ function stageClearConditionText(stage) {
   return stageClearConditionLines(stage).join("｜");
 }
 
-function stageConditionProgressSegments(stage) {
-  if (!stage || stage.id.startsWith("endless")) {
-    return [`波次 ${game.wave}`, `擊殺 ${game.kills}`, "無盡模式"];
+function getStageConditionStatuses(stage, { forPending = false } = {}) {
+  const targetStage = stage ?? stageCatalog[forPending ? pendingStageId : game.stageId];
+  if (!targetStage) return [];
+  const statuses = [];
+  const waveTarget = targetStage.wavePlan?.maxWaves ?? 0;
+  const currentWave = forPending ? 0 : game.wave;
+  statuses.push({
+    key: "waves",
+    label: "波次",
+    current: Math.min(currentWave, waveTarget || currentWave),
+    target: waveTarget || null,
+    rule: waveTarget ? `完成 ${waveTarget} 波` : "完成波次",
+    ok: !waveTarget || currentWave >= waveTarget,
+    kind: "min"
+  });
+  if (targetStage.id.startsWith("endless")) {
+    statuses.push({
+      key: "endless",
+      label: "模式",
+      current: forPending ? "無盡" : `擊殺 ${game.kills}`,
+      target: null,
+      rule: "存活越久越好",
+      ok: true,
+      kind: "info"
+    });
+    return statuses;
   }
-  const segs = [`波次 ${Math.min(game.wave, stage.wavePlan?.maxWaves ?? game.wave)}/${stage.wavePlan?.maxWaves ?? "?"}`];
-  for (const cond of stage.wavePlan?.clearConditions ?? []) {
+  for (const cond of targetStage.wavePlan?.clearConditions ?? []) {
     if (cond.type === "minLives") {
-      const ok = game.lives >= cond.value;
-      segs.push(`生命 ${game.lives}/${cond.value}${ok ? "✓" : ""}`);
+      const current = forPending ? game.maxLives : game.lives;
+      statuses.push({ key: cond.type, label: "生命", current, target: cond.value, rule: `≥ ${cond.value}`, ok: current >= cond.value, kind: "min" });
     } else if (cond.type === "minKills") {
-      const ok = game.kills >= cond.value;
-      segs.push(`擊殺 ${game.kills}/${cond.value}${ok ? "✓" : ""}`);
+      const current = forPending ? 0 : game.kills;
+      statuses.push({ key: cond.type, label: "擊殺", current, target: cond.value, rule: `≥ ${cond.value}`, ok: current >= cond.value, kind: "min" });
     } else if (cond.type === "maxLeaks") {
-      const leaks = Math.max(0, game.maxLives - game.lives);
-      const ok = leaks <= cond.value;
-      segs.push(`漏怪 ${leaks}/${cond.value}${ok ? "✓" : ""}`);
+      const current = forPending ? 0 : Math.max(0, game.maxLives - game.lives);
+      statuses.push({ key: cond.type, label: "漏怪", current, target: cond.value, rule: `≤ ${cond.value}`, ok: current <= cond.value, kind: "max" });
     } else if (cond.type === "maxTowersPlaced") {
-      const placed = game.stats.towersPlaced;
-      const ok = placed <= cond.value;
-      segs.push(`建塔 ${placed}/${cond.value}${ok ? "✓" : ""}`);
+      const current = forPending ? 0 : game.stats.towersPlaced;
+      statuses.push({ key: cond.type, label: "建塔", current, target: cond.value, rule: `≤ ${cond.value}`, ok: current <= cond.value, kind: "max" });
     }
   }
-  return segs;
+  return statuses;
+}
+
+function stageConditionProgressSegments(stage) {
+  return getStageConditionStatuses(stage).map((s) => {
+    if (s.target == null) return `${s.label} ${s.current}${s.ok ? "✓" : ""}`;
+    return `${s.label} ${s.current}/${s.target}${s.ok ? "✓" : ""}`;
+  });
 }
 
 function updateHudClearConditionLabel() {
@@ -388,8 +415,13 @@ function updateHudClearConditionLabel() {
   const stageForRule = stageCatalog[pendingStageId];
   const stageForProgress = game.inMainMenu ? stageForRule : (stageCatalog[game.stageId] ?? stageForRule);
   const ruleText = stageClearConditionText(stageForRule);
-  const progressText = stageConditionProgressSegments(stageForProgress).join("｜");
-  hud.clearConditionLabel.textContent = `過關條件：${ruleText}｜進度：${progressText}`;
+  const statuses = getStageConditionStatuses(stageForProgress, { forPending: game.inMainMenu });
+  const chips = statuses.map((s) => {
+    const cls = s.ok ? "is-ok" : (s.kind === "max" && Number(s.current) > Number(s.target) ? "is-bad" : "");
+    const value = s.target == null ? `${s.current}` : `${s.current}/${s.target}`;
+    return `<span class="condition-chip ${cls}"><em>${s.label}</em><strong>${value}</strong></span>`;
+  }).join("");
+  hud.clearConditionLabel.innerHTML = `<span class="prefix">過關條件</span><span class="rules">${ruleText}</span><span class="progress">${chips}</span>`;
 }
 
 function evaluateStageClearConditions(stage) {
@@ -891,6 +923,11 @@ function openResultOverlay({ victory }) {
         : "解鎖提示：已完成目前章節關卡"}（已解鎖 ${unlockedCount} 關）`
       : `解鎖提示：維持生命可拿更高星級（目前規則：3★≥18，2★≥10）`;
   }
+  const conditionRows = getStageConditionStatuses(activeStageInfo).map((s) => {
+    const status = s.ok ? "達成" : "未達成";
+    const value = s.target == null ? `${s.current}` : `${s.current} / ${s.target}`;
+    return `<div class="item condition ${s.ok ? "ok" : "fail"}"><span>${s.label}（${s.rule}）</span><strong>${value} · ${status}</strong></div>`;
+  }).join("");
   resultUi.stats.innerHTML = `
     <div class="item"><span>地圖 / 關卡</span><strong>${game.mapShortLabel} / ${game.stageShortLabel}</strong></div>
     <div class="item"><span>波次</span><strong>${game.wave}</strong></div>
@@ -901,6 +938,7 @@ function openResultOverlay({ victory }) {
     <div class="item"><span>結算獎勵</span><strong>${victory ? `+${game.lastResultReward || 0}` : "0"}</strong></div>
     <div class="item"><span>建塔 / 升級</span><strong>${game.stats.towersPlaced} / ${game.stats.towerUpgrades}</strong></div>
     <div class="item"><span>分支升級 / Boss 擊殺</span><strong>${game.stats.branchUpgrades} / ${game.stats.bossKills}</strong></div>
+    ${conditionRows}
   `;
   resultUi.nextBtn.disabled = !victory || !nextStageId || !nextUnlocked;
   resultUi.nextBtn.textContent = !victory ? "下一關（需通關）" : nextStageId ? "下一關" : "已是最後一關";
