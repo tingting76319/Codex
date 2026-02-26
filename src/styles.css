@@ -1304,6 +1304,21 @@ button.is-active {
   background: linear-gradient(90deg, #54e6a6, #7de9ff);
 }
 
+.boss-alert[data-badge="提前-BOSS"] {
+  border-color: rgba(255,123,123,0.5);
+  background: linear-gradient(90deg, rgba(74,10,10,0.94), rgba(45,8,22,0.94));
+  box-shadow: 0 12px 38px rgba(120,12,18,0.3);
+}
+
+.boss-alert[data-badge="提前-BOSS"] .bar {
+  background: linear-gradient(90deg, #ff6a6a, #ffb17c, #ffd166);
+  height: 4px;
+}
+
+.boss-alert[data-badge="提前-BOSS"]:not(.is-hidden) {
+  animation: earlyBossAlertFlash 220ms ease-in-out 3 alternate;
+}
+
 .boss-alert:not(.is-hidden) .badge {
   animation: bossBadgePulse 0.8s ease-in-out infinite alternate;
 }
@@ -1317,6 +1332,11 @@ button.is-active {
     transform: scale(1.04);
     box-shadow: 0 0 16px rgba(255, 123, 123, 0.22);
   }
+}
+
+@keyframes earlyBossAlertFlash {
+  from { box-shadow: 0 10px 24px rgba(120,12,18,0.22); }
+  to { box-shadow: 0 14px 42px rgba(255,90,90,0.36); }
 }
 
 #gameCanvas {

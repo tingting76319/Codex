@@ -16,6 +16,7 @@ export const hud = {
   pauseBtn: document.getElementById("pauseBtn"),
   speedBtn: document.getElementById("speedBtn"),
   openMenuBtn: document.getElementById("openMenuBtn"),
+  openShortcutHelpBtn: document.getElementById("openShortcutHelpBtn"),
   openSaveBtn: document.getElementById("openSaveBtn"),
   muteBtn: document.getElementById("muteBtn"),
   bgmVolume: document.getElementById("bgmVolume"),

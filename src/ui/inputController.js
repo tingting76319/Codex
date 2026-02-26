@@ -18,6 +18,7 @@ export function bindInputHandlers({
   onStageChange,
   onApplyStage,
   onOpenMenu,
+  onOpenShortcutHelp,
   onOpenSave,
   onMenuMapChange,
   onMenuStageChange,
@@ -88,6 +89,7 @@ export function bindInputHandlers({
   bindPress(hud.pauseBtn, onTogglePause);
   bindPress(hud.speedBtn, onToggleSpeed);
   bindPress(hud.openMenuBtn, onOpenMenu);
+  bindPress(hud.openShortcutHelpBtn, onOpenShortcutHelp);
   bindPress(hud.openSaveBtn, onOpenSave);
   bindPress(hud.towerTypeBasicBtn, () => onSelectTowerType?.("basic"));
   bindPress(hud.towerTypeSlowBtn, () => onSelectTowerType?.("slow"));

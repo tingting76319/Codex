@@ -1254,6 +1254,8 @@ function openResultOverlay({ victory }) {
   const earlyBonusTotal = Math.max(0, Number(game.earlyStartBonusTotal ?? 0));
   const goldForRatio = Math.max(1, Number(game.gold ?? 0));
   const earlyBonusRatio = Math.round((earlyBonusTotal / goldForRatio) * 100);
+  const avgEarlyBonus = game.wave > 0 ? (earlyBonusTotal / game.wave) : 0;
+  const earlyVerdict = earlyBonusRatio >= 25 ? "高收益" : earlyBonusRatio >= 12 ? "穩定收益" : earlyBonusRatio > 0 ? "小幅收益" : "未使用";
   resultUi.stats.innerHTML = `
     <div class="item"><span>地圖 / 關卡</span><strong>${game.mapShortLabel} / ${game.stageShortLabel}</strong></div>
     <div class="item"><span>波次</span><strong>${game.wave}</strong></div>
@@ -1263,6 +1265,7 @@ function openResultOverlay({ victory }) {
     <div class="item"><span>本局金幣</span><strong>${game.gold}</strong></div>
     <div class="item"><span>結算獎勵</span><strong>${victory ? `+${game.lastResultReward || 0}` : "0"}</strong></div>
     <div class="item"><span>提前開波獎勵（本關累計）</span><strong>+${earlyBonusTotal}（約 ${earlyBonusRatio}% 本局金幣）</strong></div>
+    <div class="item"><span>提前開波策略分析</span><strong>${earlyVerdict}｜平均每波 +${avgEarlyBonus.toFixed(1)}</strong></div>
     <div class="item"><span>建塔 / 升級</span><strong>${game.stats.towersPlaced} / ${game.stats.towerUpgrades}</strong></div>
     <div class="item"><span>分支升級 / Boss 擊殺</span><strong>${game.stats.branchUpgrades} / ${game.stats.bossKills}</strong></div>
     ${conditionRows}
@@ -1566,6 +1569,15 @@ bindInputHandlers({
     openMainMenu();
     setMenuPanel("home");
     setMessage("已開啟主選單。");
+  },
+  onOpenShortcutHelp: () => {
+    syncMenuStateFromDom();
+    openMainMenu();
+    setMenuPanel("settings");
+    const shortcutDetails = document.querySelector(".menu-shortcut-details");
+    if (shortcutDetails) shortcutDetails.open = true;
+    shortcutDetails?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    setMessage("已開啟快捷鍵說明（設定頁）。");
   },
   onOpenSave: () => {
     syncMenuStateFromDom();
