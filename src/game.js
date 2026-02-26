@@ -930,6 +930,11 @@ function syncMenuSettingsUi() {
   if (menu.spriteQuality) menu.spriteQuality.value = game.displaySettings.spriteQuality;
   if (menu.spriteAutoThreshold) menu.spriteAutoThreshold.value = String(sanitizeSpriteAutoThreshold(game.displaySettings.spriteAutoThreshold));
   if (menu.spriteAutoThresholdValue) menu.spriteAutoThresholdValue.textContent = String(sanitizeSpriteAutoThreshold(game.displaySettings.spriteAutoThreshold));
+  if (menu.spriteAutoThresholdHint) {
+    const n = sanitizeSpriteAutoThreshold(game.displaySettings.spriteAutoThreshold);
+    const grade = n < 75 ? "較保守（更容易降到低畫質）" : n > 105 ? "較激進（較晚降畫質）" : "建議區間（一般裝置）";
+    menu.spriteAutoThresholdHint.textContent = `建議區間：80~95（一般裝置）｜目前 ${n}：${grade}`;
+  }
   if (menu.showTowerPanel) menu.showTowerPanel.checked = game.displaySettings.showTowerPanel;
   if (menu.showPerfStats) menu.showPerfStats.checked = game.displaySettings.showPerfStats;
   if (menu.saveSlot) menu.saveSlot.value = game.currentSaveSlot;

@@ -5,6 +5,12 @@ let perfFps = 0;
 let autoSpriteActualLast = null;
 let autoSpriteSwitchCount = 0;
 let autoSpriteLastSwitchAt = 0;
+const bossChipIconMap = {
+  "護盾": "./assets/ui/boss-chip-shield.svg",
+  "召喚": "./assets/ui/boss-chip-summon.svg",
+  "狂暴": "./assets/ui/boss-chip-rage.svg"
+};
+const bossChipIconCache = new Map();
 const fishSpriteMap = {
   "鯊魚": "./assets/fish-battle/shark-real.png",
   "皇帶魚": "./assets/fish-battle/oarfish-real.png",
@@ -27,6 +33,20 @@ function getFishSprite(species, fish = null) {
   img.loading = "lazy";
   img.src = src;
   fishSpriteCache.set(src, img);
+  return img;
+}
+
+function getBossChipIcon(label = "") {
+  const key = label.includes("護盾") ? "護盾" : label.includes("召喚") ? "召喚" : label.includes("狂暴") ? "狂暴" : null;
+  if (!key) return null;
+  const src = bossChipIconMap[key];
+  if (!src) return null;
+  if (bossChipIconCache.has(src)) return bossChipIconCache.get(src);
+  const img = new Image();
+  img.decoding = "async";
+  img.loading = "lazy";
+  img.src = src;
+  bossChipIconCache.set(src, img);
   return img;
 }
 
@@ -244,6 +264,7 @@ function drawBackground() {
         let addedDps = 0;
         let coveredBaseDps = 0;
         const typeCounts = new Map();
+        const uncoveredCandidates = [];
         ctx.strokeStyle = "rgba(141,255,185,0.28)";
         ctx.lineWidth = 1.4;
         ctx.setLineDash([5, 6]);
@@ -254,12 +275,15 @@ function drawBackground() {
         for (const tower of game.towers) {
           if (tower.typeKey === "support") continue;
           const d = Math.hypot(tower.x - cx, tower.y - cy);
-          if (d > supportSpec.supportAura.radius) continue;
+          const currentBuff = mergedSupportBuffWithCaps(tower.activeSupportBuff, null);
+          const beforeDps = estimateTowerDpsWithBuff(tower, currentBuff);
+          if (d > supportSpec.supportAura.radius) {
+            uncoveredCandidates.push({ label: tower.typeLabel ?? tower.typeKey ?? "塔", dps: beforeDps });
+            continue;
+          }
           coveredCount += 1;
           typeCounts.set(tower.typeLabel ?? tower.typeKey ?? "塔", (typeCounts.get(tower.typeLabel ?? tower.typeKey ?? "塔") ?? 0) + 1);
-          const currentBuff = mergedSupportBuffWithCaps(tower.activeSupportBuff, null);
           const plusBuff = mergedSupportBuffWithCaps(tower.activeSupportBuff, supportSpec.supportAura);
-          const beforeDps = estimateTowerDpsWithBuff(tower, currentBuff);
           const afterDps = estimateTowerDpsWithBuff(tower, plusBuff);
           coveredBaseDps += beforeDps;
           addedDps += Math.max(0, afterDps - beforeDps);
@@ -281,20 +305,27 @@ function drawBackground() {
           .slice(0, 3)
           .map(([label, count]) => `${label}x${count}`)
           .join(" / ") || "無";
+        const uncoveredSummary = uncoveredCandidates
+          .sort((a, b) => b.dps - a.dps)
+          .slice(0, 2)
+          .map((t) => `${t.label}(${Math.round(t.dps)})`)
+          .join(" / ") || "無";
         ctx.beginPath();
-        ctx.roundRect(cx - 92, cy - supportSpec.supportAura.radius - 58, 184, 52, 8);
+        ctx.roundRect(cx - 110, cy - supportSpec.supportAura.radius - 72, 220, 66, 8);
         ctx.fill();
         ctx.stroke();
         ctx.fillStyle = "#cffff0";
         ctx.font = "bold 11px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText(`預估覆蓋 ${coveredCount} 座`, cx, cy - supportSpec.supportAura.radius - 43);
+        ctx.fillText(`預估覆蓋 ${coveredCount} 座`, cx, cy - supportSpec.supportAura.radius - 57);
         ctx.font = "10px sans-serif";
         ctx.fillStyle = "rgba(207,255,240,0.9)";
         const pctGain = coveredBaseDps > 0 ? Math.round((addedDps / coveredBaseDps) * 100) : 0;
-        ctx.fillText(`新增DPS 約 +${Math.round(addedDps)}（+${pctGain}%）`, cx, cy - supportSpec.supportAura.radius - 30);
+        ctx.fillText(`新增DPS 約 +${Math.round(addedDps)}（+${pctGain}%）`, cx, cy - supportSpec.supportAura.radius - 44);
         ctx.fillStyle = "rgba(188,245,221,0.88)";
-        ctx.fillText(`塔種：${compSummary}`, cx, cy - supportSpec.supportAura.radius - 17);
+        ctx.fillText(`塔種：${compSummary}`, cx, cy - supportSpec.supportAura.radius - 31);
+        ctx.fillStyle = "rgba(255,225,182,0.9)";
+        ctx.fillText(`未覆蓋高DPS：${uncoveredSummary}`, cx, cy - supportSpec.supportAura.radius - 18);
       }
       ctx.strokeStyle = valid ? "rgba(141,255,185,0.85)" : "rgba(255,123,123,0.85)";
       ctx.lineWidth = 2;
@@ -946,7 +977,10 @@ function drawOverlay() {
       const chipY = 70;
       for (const item of historyItems) {
         const chipText = `${item.icon ?? "•"} ${item.label}`;
-        const chipW = Math.max(36, Math.ceil(ctx.measureText(chipText).width) + 12);
+        const iconImg = getBossChipIcon(item.label);
+        const iconW = iconImg?.complete && iconImg?.naturalWidth ? 12 : 0;
+        const iconGap = iconW ? 4 : 0;
+        const chipW = Math.max(36, Math.ceil(ctx.measureText(chipText).width) + 12 + iconW + iconGap);
         const ageSec = item.ts ? (Date.now() - item.ts) / 1000 : 0;
         const fadeAlpha = Math.max(0.35, Math.min(1, 1 - ageSec / 12));
         const color = item.label.includes("護盾")
@@ -972,7 +1006,14 @@ function drawOverlay() {
         ctx.stroke();
         ctx.fillStyle = `rgba(231,251,255,${(0.75 + 0.25 * fadeAlpha).toFixed(3)})`;
         ctx.font = "10px sans-serif";
-        ctx.fillText(chipText, chipX + 6, chipY + 10);
+        let textX = chipX + 6;
+        if (iconW) {
+          ctx.globalAlpha = fadeAlpha;
+          ctx.drawImage(iconImg, chipX + 5, chipY + 1, 12, 12);
+          ctx.globalAlpha = 1;
+          textX += iconW + iconGap;
+        }
+        ctx.fillText(chipText, textX, chipY + 10);
         chipX += chipW + 6;
         if (chipX > canvas.width - 30) break;
       }
